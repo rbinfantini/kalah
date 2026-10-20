@@ -10,8 +10,6 @@ Também está disponível **MancalaSoJoga-Windows-x64.zip**, com o mesmo execut�
 
 O pacote é para Windows de 64 bits. Linux e macOS precisam de distribuições próprias; o executável Windows não é universal. Cada versão só é publicada depois que o processo automático testa as regras e executa uma verificação de menus, animação, salvamento e tutorial dentro do próprio pacote.
 
-`ren "kalah[" "kalah"` **não é uma etapa de instalação**: apenas renomeia uma pasta digitada incorretamente. O jogo não exige que a pasta tenha um nome específico.
-
 ## Executar o código para desenvolver
 
 No Windows, use Python 3.10 ou superior com Tcl/Tk e dê dois cliques em **`iniciar.pyw`**. Quando a extensão `.pyw` está associada ao Python no Windows, o jogo abre sem janela de terminal. Se o arquivo abrir num editor, escolha o Python (pythonw.exe) em **Abrir com** ou execute `pyw -3 iniciar.pyw` pelo terminal.
