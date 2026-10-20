@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mancala-so-joga"
+version = "0.1.0"
+description = "Mancala Só Joga: Kalah local com tutorial e adversário de computador"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = []
+
+[project.gui-scripts]
+mancala-so-joga = "mancala.inicializacao:iniciar"
+
+[project.urls]
+Repository = "https://github.com/rbinfantini/kalah"
+Issues = "https://github.com/rbinfantini/kalah/issues"
+
+[tool.setuptools.packages.find]
+include = ["mancala*"]

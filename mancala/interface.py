@@ -1,6 +1,5 @@
 """Janela e navegação. Regras, reprodução e armazenamento ficam em módulos próprios."""
 from datetime import datetime
-from pathlib import Path
 import logging
 import math
 import queue
@@ -9,6 +8,7 @@ import time
 import tkinter as tk
 from tkinter import messagebox
 from .animacao import AnimadorJogada
+from .caminhos import pasta_dados
 from .estrategia import escolher_jogada
 from .partidas import ArquivoPartidas, Partida
 from .regras import CASAS, DEPOSITOS, casas_disponiveis
@@ -25,12 +25,12 @@ DOURADO = '#f0c277'
 class Aplicativo:
     def __init__(self, janela, pasta_partidas=None):
         self.janela = janela
-        janela.title('Mancala · uma casa, muitas possibilidades')
+        janela.title('Mancala Só Joga')
         janela.geometry('1120x760')
         janela.minsize(920, 680)
         janela.configure(bg=FUNDO)
         janela.protocol('WM_DELETE_WINDOW', self.sair)
-        self.arquivos = ArquivoPartidas(pasta_partidas or Path(__file__).resolve().parents[1] / 'partidas_salvas')
+        self.arquivos = ArquivoPartidas(pasta_partidas if pasta_partidas is not None else pasta_dados() / 'partidas_salvas')
         self.partida = None
         self.animador = AnimadorJogada()
         self.cancelamento = None

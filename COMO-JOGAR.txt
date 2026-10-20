@@ -1,0 +1,21 @@
+MANCALA SO JOGA PARA WINDOWS 10/11 (64 bits)
+
+1. Extraia o ZIP inteiro usando "Extrair tudo".
+2. Abra a pasta MancalaSoJoga e clique duas vezes em MancalaSoJoga.exe.
+
+Nao precisa instalar Python, Git ou pacotes. Funciona sem internet.
+O executavel inclui Python e as bibliotecas em um unico arquivo.
+Nao tente abrir o jogo diretamente dentro do ZIP.
+
+As partidas ficam em %LOCALAPPDATA%\MancalaSoJoga\partidas_salvas.
+Os diagnosticos ficam em %LOCALAPPDATA%\MancalaSoJoga\logs.
+Para trazer partidas da versao em Python, copie os JSONs da antiga pasta
+partidas_salvas para esse local com o jogo fechado, sem substituir arquivos
+de mesmo nome que voce queira preservar.
+
+Regras: 12 casas com 4 sementes; depositos P7 e P13 comecam vazios.
+Escolha uma casa sua para distribuir as sementes. O deposito adversario
+e pulado. Sementes que entram em depositos nunca saem.
+O tutorial mostra distribuicao, turno extra, captura e encerramento.
+
+Codigo, novas versoes e problemas: https://github.com/rbinfantini/kalah
