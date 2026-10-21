@@ -8,6 +8,7 @@ on:
       - '**.pyw'
       - 'requirements-build.txt'
       - 'pyproject.toml'
+      - 'mancala/recursos/**'
       - 'scripts/**'
       - 'COMO-JOGAR.txt'
       - '.github/workflows/windows.yml'

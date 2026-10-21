@@ -3,6 +3,7 @@ partidas_salvas/
 logs/
 *.log
 *.tmp
+verificacao-local.json
 
 # Python e ambientes locais
 __pycache__/

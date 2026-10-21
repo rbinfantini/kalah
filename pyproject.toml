@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mancala-so-joga"
-version = "0.1.0"
+version = "0.2.0"
 description = "Mancala Só Joga: Kalah local com tutorial e adversário de computador"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -19,3 +19,6 @@ Issues = "https://github.com/rbinfantini/kalah/issues"
 
 [tool.setuptools.packages.find]
 include = ["mancala*"]
+
+[tool.setuptools.package-data]
+mancala = ["recursos/*.png"]

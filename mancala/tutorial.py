@@ -22,17 +22,17 @@ def preparar_cenario(casas, deposito_a):
 
 
 ETAPAS = (
-    Etapa('01 · Distribuir', 'Escolha P0. Suas quatro sementes vão para P1, P2, P3 e P4.',
-          estado_inicial(), 0, 'Uma semente por posição. Agora seria a vez de B. Os depósitos nunca podem ser escolhidos.'),
-    Etapa('02 · Jogar novamente', 'Escolha P2. A última semente vai chegar ao seu depósito P7.',
-          estado_inicial(), 2, 'A última semente caiu em P7: A ganha outra escolha. As sementes do depósito ficam guardadas.'),
-    Etapa('03 · Capturar', 'Escolha P1. P2 está vazia, e a casa oposta P10 tem quatro sementes.',
+    Etapa('01 · Distribuir', 'Clique na casa iluminada. Suas quatro sementes serão distribuídas pelas casas seguintes.',
+          estado_inicial(), 0, 'Uma semente em cada casa. Agora seria a vez do adversário. Os depósitos guardam as sementes até o fim.'),
+    Etapa('02 · Jogar novamente', 'Escolha a casa iluminada. A última semente chegará ao seu depósito, à direita.',
+          estado_inicial(), 2, 'A última semente caiu no seu depósito: você ganhou outra jogada!'),
+    Etapa('03 · Capturar', 'Escolha a casa iluminada. A seguinte está vazia, mas a casa à sua frente tem quatro sementes.',
           preparar_cenario({0:1, 1:1, 3:1, 4:1, 5:1, 6:1, 8:1, 9:1, 10:4, 11:1, 12:1}, 17), 1,
-          'P7 recebeu cinco sementes: a última distribuída e as quatro da casa oposta. Captura não concede turno extra.'),
-    Etapa('04 · Dar a volta', 'Escolha P4, com 17 sementes. Observe P7 receber sementes e P13 ser pulado.',
+          'Você capturou cinco sementes: a sua e as quatro da casa oposta. Todas foram para o seu depósito.'),
+    Etapa('04 · Dar a volta', 'Escolha a casa iluminada, com 17 sementes. A distribuição vai dar a volta no tabuleiro.',
           preparar_cenario({0:1, 1:1, 2:1, 3:1, 4:17, 5:1, 6:1, 8:1, 9:1, 10:1, 11:1, 12:1}, 10), 4,
           'A sequência dá a volta e passa pela origem novamente. Só o depósito adversário é pulado.'),
-    Etapa('05 · Encerrar', 'Escolha P5, a única casa de A com sementes. O lado de A ficará vazio.',
+    Etapa('05 · Encerrar', 'Escolha a única casa iluminada. Sua fileira ficará vazia e a partida terminará.',
           preparar_cenario({5:1, 6:2, 8:3, 9:4, 10:5, 11:6, 12:1}, 20), 5,
-          'Fim: A tem 21 e B tem 27. As sobras foram para seus depósitos. O encerramento prevalece sobre o turno extra.'),
+          'Fim de jogo: 21 a 27. As sementes restantes foram para o depósito de cada jogador. Vence quem guardou mais.'),
 )
