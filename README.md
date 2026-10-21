@@ -1,6 +1,6 @@
 # Mancala Só Joga
 
-Novo projeto em Python, com nomes em português e regras separadas da interface. Usa apenas a biblioteca padrão, sem Pygame ou serviços online.
+Jogo em Python com interface escura, tabuleiro proporcional e nomes em português. As regras são separadas da interface. Para jogar, usa apenas a biblioteca padrão, sem serviços online.
 
 ## Jogar sem instalar Python
 
@@ -34,6 +34,8 @@ Use `.\.venv\Scripts\pythonw.exe iniciar.pyw` para abrir sem console. A instala�
 
 São **48 sementes**: 12 casas começam com quatro cada. P7 (A) e P13 (B) começam vazios.
 
+Os códigos abaixo identificam posições internas do motor. A interface mostra as sementes, suas quantidades e os placares, sem esses códigos.
+
 ```text
                B: da direita para a esquerda
            P12  P11  P10  P9  P8  P6
@@ -55,7 +57,7 @@ O percurso troca a ordem numérica de P6/P7 para preservar seis casas por jogado
 
 ## Menus e partidas
 
-Menu: Jogar, Carregar jogo, Tutorial e Sair. Jogar permite dupla ou máquina; máquina oferece Fácil, Normal e Difícil. Menu e Sair permanecem disponíveis durante cálculos e animações. Clique nas casas ou use os botões Pn; Tab e Enter permitem acessar os controles.
+Menu: Jogar, Carregar jogo, Aprender a jogar e Sair. Jogar permite dupla ou máquina; máquina oferece Fácil, Normal e Difícil. Menu e Sair permanecem disponíveis durante cálculos e animações. Clique nas casas iluminadas ou use as teclas 1–6 da esquerda para a direita. No tabuleiro, setas mudam o foco e Enter/Espaço confirmam; Tab percorre os controles.
 
 As partidas são salvas automaticamente ao iniciar e após cada escolha. Na execução a partir deste repositório, ficam na pasta `partidas_salvas/` do projeto. No executável Windows, ficam em `%LOCALAPPDATA%\MancalaSoJoga\partidas_salvas`, fora das bibliotecas e dos arquivos de instalação. Os logs do executável ficam em `%LOCALAPPDATA%\MancalaSoJoga\logs`. Assim, atualizar o executável não apaga as partidas.
 
@@ -87,8 +89,13 @@ A profundidade conta escolhas, incluindo turnos extras. O computador usa as mesm
 | `mancala/animacao.py` | Reprodução dos eventos |
 | `mancala/tutorial.py` | Cinco exercícios usando o motor real |
 | `mancala/interface.py` | Menus, desenho e coordenação da janela |
+| `mancala/aparencia.py` | Paleta, tipografia e estilos dos controles ttk |
+| `mancala/tabuleiro.py` | Desenho da madeira e sementes; seleção por mouse e teclado |
+| `mancala/recursos/` | Gráficos PNG usados pelo jogo |
+| `scripts/gerar_graficos.py` | Geração dos gráficos com bordas suavizadas |
 | `testes/test_regras.py` | Regras, busca e armazenamento |
 | `testes/test_caminhos.py` | Separação dos dados entre código e executável |
+| `testes/test_interface.py` | Navegação, foco, filtros, animação e layout com Tk real |
 | `pyproject.toml` | Metadados, versão, Python mínimo e instalação do projeto |
 | `requirements-build.txt` | Ferramenta de empacotamento |
 | `scripts/empacotar_windows.ps1` | Construção e verificação dos pacotes |
@@ -116,6 +123,8 @@ Execute `.\.venv\Scripts\python.exe -m unittest discover -s testes -v`.
 Verificações: percurso dos dois jogadores, 48 sementes, depósitos que nunca diminuem, turno extra, captura, encerramento, tutorial, 100 partidas aleatórias, salvar/retomar, arquivos inválidos e equivalência da busca otimizada com minimax sem poda em posições selecionadas.
 
 Os testes automatizados não substituem a verificação visual da interface. Quem desenvolve precisa de Python com Tkinter; quem usa o pacote Windows recebe esse ambiente incluído.
+
+Os testes de interface usam dados temporários e precisam de um ambiente gráfico. Sem Tk disponível, são marcados como ignorados. Consulte [interface e recursos gráficos](docs/interface.md) para os controles, a organização e a geração dos PNGs.
 
 ## Gerar o pacote Windows
 

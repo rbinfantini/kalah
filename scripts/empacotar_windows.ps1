@@ -35,11 +35,11 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Os testes falharam.' }
 
     # Primeiro verifica a coleta de bibliotecas em pasta; depois gera arquivo unico.
-    & $Python -m PyInstaller --noconfirm --clean --onedir --windowed --name MancalaSoJoga --specpath build iniciar.pyw
+    & $Python -m PyInstaller --noconfirm --clean --onedir --windowed --collect-data mancala --name MancalaSoJoga --specpath build iniciar.pyw
     if ($LASTEXITCODE -ne 0) { throw 'O empacotamento em pasta falhou.' }
     Testar-Executavel (Join-Path $pastaProjeto 'dist\MancalaSoJoga\MancalaSoJoga.exe') (Join-Path $pastaProjeto 'build\verificacao-pasta.json')
 
-    & $Python -m PyInstaller --noconfirm --clean --onefile --windowed --name MancalaSoJoga --distpath dist/arquivo-unico --workpath build/arquivo-unico --specpath build/arquivo-unico iniciar.pyw
+    & $Python -m PyInstaller --noconfirm --clean --onefile --windowed --collect-data mancala --name MancalaSoJoga --distpath dist/arquivo-unico --workpath build/arquivo-unico --specpath build/arquivo-unico iniciar.pyw
     if ($LASTEXITCODE -ne 0) { throw 'O empacotamento em arquivo unico falhou.' }
     Testar-Executavel (Join-Path $pastaProjeto 'dist\arquivo-unico\MancalaSoJoga.exe') (Join-Path $pastaProjeto 'build\verificacao-arquivo-unico.json')
 

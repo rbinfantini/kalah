@@ -15,10 +15,23 @@ def verificar_instalacao(caminho_relatorio):
         from .interface import Aplicativo
         from .partidas import Partida
         from .tutorial import ETAPAS
+        from .tabuleiro import RECURSOS
 
         janela = tk.Tk()
         janela.withdraw()
+        erros_tk = []
+        janela.report_callback_exception = lambda tipo, valor, pilha: erros_tk.append(
+            ''.join(traceback.format_exception(tipo, valor, pilha)))
         relatorio['tcl_tk'] = str(janela.tk.call('info', 'patchlevel'))
+        graficos = [f'{tipo}-{largura}.png' for largura in range(360, 1601, 40)
+                    for tipo in ('tabuleiro', 'ativa', 'foco', 'destaque')]
+        graficos += [f'semente-{cor}-{tamanho}.png' for tamanho in range(6, 31, 2)
+                     for cor in range(4)]
+        for nome in graficos:
+            imagem = tk.PhotoImage(master=janela, file=str(RECURSOS / nome))
+            if imagem.width() <= 0 or imagem.height() <= 0:
+                raise RuntimeError(f'Recurso gráfico inválido: {nome}')
+        relatorio['verificacoes'].append(f'{len(graficos)} gráficos incluídos e legíveis')
         with tempfile.TemporaryDirectory(prefix='mancala-verificacao-') as pasta:
             app = Aplicativo(janela, pasta)
             for acao in (app.escolher_modo, app.escolher_dificuldade, app.menu, app.listar_partidas):
@@ -61,6 +74,8 @@ def verificar_instalacao(caminho_relatorio):
                 if recomendacao.casa not in casas_disponiveis(estado_inicial()):
                     raise RuntimeError(f'Jogada inválida no nível {nivel}.')
             relatorio['verificacoes'].append('três níveis do computador')
+            if erros_tk:
+                raise RuntimeError('Erro em um evento da interface:\n' + '\n'.join(erros_tk))
             app.sair()
             janela = None
         relatorio['sucesso'] = True
