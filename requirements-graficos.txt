@@ -1,2 +1,0 @@
-# Opcional: somente para recriar os PNGs. Não é necessário para jogar ou empacotar.
-Pillow==12.3.0
