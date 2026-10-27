@@ -9,10 +9,16 @@ def main():
     argumentos = argparse.ArgumentParser(description='Mancala Só Joga')
     argumentos.add_argument('--verificar-instalacao', metavar='RELATORIO',
                             help='verifica o pacote e grava um relatório JSON')
+    argumentos.add_argument('--medir-abertura', metavar='RELATORIO',
+                            help='mede o primeiro desenho completo com dados temporários')
     opcoes = argumentos.parse_args()
     if opcoes.verificar_instalacao:
         from .diagnostico import verificar_instalacao
         verificar_instalacao(opcoes.verificar_instalacao)
+        return
+    if opcoes.medir_abertura:
+        from .diagnostico import medir_abertura
+        medir_abertura(opcoes.medir_abertura)
         return
     import tkinter as tk
     from .interface import Aplicativo
@@ -37,7 +43,7 @@ def iniciar():
         except OSError:
             pass
         mensagem = 'Não foi possível abrir o Mancala Só Joga.\n\n' + detalhe
-        if '--verificar-instalacao' not in sys.argv:
+        if not {'--verificar-instalacao', '--medir-abertura'}.intersection(sys.argv):
             if sys.platform == 'win32':
                 import ctypes
                 ctypes.windll.user32.MessageBoxW(None, mensagem, 'Mancala Só Joga', 0x10)

@@ -1,15 +1,19 @@
-"""Gera os recursos originais com supersampling. Pillow é usado só nesta etapa."""
-from pathlib import Path
+"""Desenhos procedurais com Pillow, sem arquivos de imagem ou acesso ao disco.
+
+O original em alta resolução e os caches limitados são compartilhados entre
+telas. As imagens retornadas são somente para leitura; PhotoImage pertence
+ao Canvas que a exibe, nunca a este módulo.
+"""
+from functools import lru_cache
 import math
 import random
 from PIL import Image, ImageDraw, ImageFilter
 
-DESTINO = Path(__file__).resolve().parents[1] / 'mancala' / 'recursos'
 BASE = (1200, 400)
 AMPLIACAO = 3
 
 
-def geometria():
+def limites_casas():
     casas = {13: (35, 65, 135, 335), 7: (1065, 65, 1165, 335)}
     for coluna, superior in enumerate((12, 11, 10, 9, 8, 6)):
         x = 169 + coluna * 148
@@ -18,7 +22,8 @@ def geometria():
     return casas
 
 
-def tabuleiro():
+@lru_cache(maxsize=1)
+def _desenhar_tabuleiro_base():
     tamanho = tuple(v * AMPLIACAO for v in BASE)
     imagem = Image.new('RGBA', tamanho)
     desenho = ImageDraw.Draw(imagem)
@@ -54,7 +59,7 @@ def tabuleiro():
     textura.putalpha(Image.composite(textura.getchannel('A'), Image.new('L', tamanho), mascara))
     imagem.alpha_composite(textura)
     desenho = ImageDraw.Draw(imagem)
-    for posicao, limites in geometria().items():
+    for posicao, limites in limites_casas().items():
         x1, y1, x2, y2 = limites
         deposito = posicao in (7, 13)
         raio = 48 if deposito else 61
@@ -66,14 +71,26 @@ def tabuleiro():
             else:
                 desenho.ellipse(caixa(ret), fill=cor)
         # Luz suave na metade inferior da cavidade.
-        brilho = Image.new('RGBA', tamanho)
-        ImageDraw.Draw(brilho).ellipse(caixa((x1+15, y1+(y2-y1)*.6, x2-15, y2-9)),
-                                      fill=(126, 89, 59, 35))
-        imagem.alpha_composite(brilho.filter(ImageFilter.GaussianBlur(8*AMPLIACAO)))
+        # O desfoque só precisa da região iluminada e sua margem transparente.
+        # Evita filtrar o tabuleiro inteiro para cada uma das 14 cavidades.
+        bx1, by1, bx2, by2 = caixa((x1+15, y1+(y2-y1)*.6, x2-15, y2-9))
+        margem = 3 * 8 * AMPLIACAO
+        esquerda, topo = max(0, bx1-margem), max(0, by1-margem)
+        direita, fundo = min(tamanho[0], bx2+1+margem), min(tamanho[1], by2+1+margem)
+        recorte = Image.new('RGBA', (direita-esquerda, fundo-topo))
+        ImageDraw.Draw(recorte).ellipse((bx1-esquerda, by1-topo, bx2-esquerda, by2-topo),
+                                        fill=(126, 89, 59, 35))
+        imagem.alpha_composite(recorte.filter(ImageFilter.GaussianBlur(8*AMPLIACAO)),
+                               dest=(esquerda, topo))
     return imagem
 
 
-def semente(tamanho, cor):
+@lru_cache(maxsize=52)
+def renderizar_semente(indice_cor, tamanho):
+    """Cria uma semente suavizada; os 52 pares de cor/tamanho cabem no cache."""
+    if indice_cor not in range(len(CORES_SEMENTES)) or tamanho not in range(6, 31, 2):
+        raise ValueError('Cor ou tamanho de semente inválido.')
+    cor = CORES_SEMENTES[indice_cor]
     s = 4
     tela = Image.new('RGBA', (tamanho*s, tamanho*s))
     desenho = ImageDraw.Draw(tela)
@@ -92,26 +109,32 @@ def semente(tamanho, cor):
     return tela.resize((tamanho, tamanho), Image.Resampling.LANCZOS)
 
 
-def gerar():
-    DESTINO.mkdir(parents=True, exist_ok=True)
-    original = tabuleiro()
-    # Recursos em tamanho nativo: o aplicativo nunca estica bitmaps nem círculos.
-    for largura in range(360, 1601, 40):
-        altura = round(largura/3)
-        original.resize((largura, altura), Image.Resampling.LANCZOS).save(
-            DESTINO / f'tabuleiro-{largura}.png', optimize=True)
-        diametro = round(138*largura/1200)
-        for nome, cor in [('ativa', '#8bbdba'), ('foco', '#e6bf79'), ('destaque', '#f3ead7')]:
-            anel = Image.new('RGBA', (diametro*3, diametro*3))
-            desenho = ImageDraw.Draw(anel)
-            desenho.ellipse((8,8,diametro*3-9,diametro*3-9), outline=cor, width=5 if nome=='ativa' else 8)
-            anel.resize((diametro, diametro), Image.Resampling.LANCZOS).save(
-                DESTINO/f'{nome}-{largura}.png', optimize=True)
-    for tamanho in range(6, 31, 2):
-        for indice, cor in enumerate(((104,186,177), (224,175,105), (201,211,216), (154,133,186))):
-            semente(tamanho, cor).save(DESTINO/f'semente-{indice}-{tamanho}.png', optimize=True)
-    print(f'{len(list(DESTINO.glob("*.png")))} recursos gráficos gerados.')
+CORES_SEMENTES = ((104, 186, 177), (224, 175, 105), (201, 211, 216), (154, 133, 186))
+CORES_ANEIS = {'ativa': '#8bbdba', 'foco': '#e6bf79', 'destaque': '#f3ead7'}
 
 
-if __name__ == '__main__':
-    gerar()
+def _validar_largura(largura):
+    if largura not in range(360, 1601, 40):
+        raise ValueError('A largura deve estar entre 360 e 1600, em passos de 40.')
+
+
+@lru_cache(maxsize=2)
+def renderizar_tabuleiro(largura):
+    """Reduz o original com Lanczos; guarda apenas dois tamanhos recentes."""
+    _validar_largura(largura)
+    return _desenhar_tabuleiro_base().resize(
+        (largura, round(largura / 3)), Image.Resampling.LANCZOS)
+
+
+@lru_cache(maxsize=12)
+def renderizar_anel(tipo, largura):
+    """Desenha a indicação de casa disponível, foco ou exercício do tutorial."""
+    _validar_largura(largura)
+    if tipo not in CORES_ANEIS:
+        raise ValueError('Tipo de destaque inválido.')
+    diametro = round(138 * largura / BASE[0])
+    anel = Image.new('RGBA', (diametro * 3, diametro * 3))
+    ImageDraw.Draw(anel).ellipse(
+        (8, 8, diametro * 3 - 9, diametro * 3 - 9),
+        outline=CORES_ANEIS[tipo], width=5 if tipo == 'ativa' else 8)
+    return anel.resize((diametro, diametro), Image.Resampling.LANCZOS)

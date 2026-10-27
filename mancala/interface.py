@@ -16,6 +16,9 @@ from .partidas import ArquivoPartidas, Partida
 from .regras import CASAS, DEPOSITOS, casas_disponiveis
 from .tutorial import ETAPAS
 
+ESPERA_MINIMA_MAQUINA = 5.0
+RITMO_NORMAL = 0.8
+
 
 class Aplicativo:
     def __init__(self, janela, pasta_partidas=None):
@@ -35,6 +38,7 @@ class Aplicativo:
         self.respostas = queue.Queue()
         self.geracao = 0
         self.calculando = False
+        self.liberar_jogada_maquina_em = 0.0
         self.tela = ''
         self.etapa = None
         self.etapa_concluida = False
@@ -112,6 +116,7 @@ class Aplicativo:
         if self.cancelamento:
             self.cancelamento.set()
         self.calculando = False
+        self.liberar_jogada_maquina_em = 0.0
 
     def limpar_tela(self, nome):
         # O estado final já existe durante a animação e precisa ser preservado.
@@ -406,6 +411,7 @@ class Aplicativo:
 
     def iniciar_calculo(self):
         self.calculando = True
+        self.liberar_jogada_maquina_em = time.monotonic() + ESPERA_MINIMA_MAQUINA
         self.cancelamento = threading.Event()
         cancelar, estado, geracao = self.cancelamento, self.partida.estado, self.geracao
         dificuldade = self.partida.dificuldade
@@ -422,6 +428,24 @@ class Aplicativo:
 
         threading.Thread(target=calcular, daemon=True, name='estrategia-mancala').start()
 
+    def receber_jogada_maquina(self, agora):
+        """A busca e a pausa acontecem juntas, sem bloquear a interface."""
+        if agora < self.liberar_jogada_maquina_em:
+            return
+        try:
+            geracao, resposta, erro = self.respostas.get_nowait()
+            if geracao == self.geracao:
+                self.calculando = False
+                if erro:
+                    self.mensagem.set('Cálculo interrompido. Retome esta partida pelo menu para tentar novamente.')
+                    self.partida.modo = 'dupla'
+                    messagebox.showerror('Falha no computador', erro + '\nA partida passou para controle humano.', parent=self.janela)
+                    self.atualizar_controles()
+                else:
+                    self.executar_jogada(resposta.casa)
+        except queue.Empty:
+            pass
+
     def atualizar(self):
         agora = time.monotonic()
         decorrido = min(agora - self.ultimo_quadro, 0.2)
@@ -435,7 +459,7 @@ class Aplicativo:
                     while self.animador.ativo:
                         evento = self.animador.avancar(10)
                 else:
-                    evento = self.animador.avancar(decorrido * (2.5 if ritmo == 'Rápido' else 1))
+                    evento = self.animador.avancar(decorrido * (2.5 if ritmo == 'Rápido' else RITMO_NORMAL))
                 if evento:
                     self.tabuleiro_exibido = evento.sementes
                     self.na_mao, self.destaque = evento.na_mao, evento.posicao
@@ -453,19 +477,7 @@ class Aplicativo:
                             self.mensagem.set(ETAPAS[self.etapa].conclusao)
                     self.atualizar_controles()
             elif self.calculando:
-                try:
-                    geracao, resposta, erro = self.respostas.get_nowait()
-                    if geracao == self.geracao:
-                        self.calculando = False
-                        if erro:
-                            self.mensagem.set('Cálculo interrompido. Retome esta partida pelo menu para tentar novamente.')
-                            self.partida.modo = 'dupla'
-                            messagebox.showerror('Falha no computador', erro + '\nA partida passou para controle humano.', parent=self.janela)
-                            self.atualizar_controles()
-                        else:
-                            self.executar_jogada(resposta.casa)
-                except queue.Empty:
-                    pass
+                self.receber_jogada_maquina(agora)
             elif (self.partida.modo == 'maquina' and self.partida.estado.jogador_atual == 1
                   and not self.partida.estado.encerrada):
                 self.iniciar_calculo()
