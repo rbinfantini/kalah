@@ -34,12 +34,15 @@ try {
     & $Python -m unittest discover -s testes -v
     if ($LASTEXITCODE -ne 0) { throw 'Os testes falharam.' }
 
+    # O jogo gera desenhos em memória e não carrega arquivos AVIF.
+    $exclusoes = @('--exclude-module', 'PIL.AvifImagePlugin')
+
     # Primeiro verifica a coleta de bibliotecas em pasta; depois gera arquivo unico.
-    & $Python -m PyInstaller --noconfirm --clean --onedir --windowed --collect-data mancala --name MancalaSoJoga --specpath build iniciar.pyw
+    & $Python -m PyInstaller --noconfirm --clean --onedir --windowed @exclusoes --name MancalaSoJoga --specpath build iniciar.pyw
     if ($LASTEXITCODE -ne 0) { throw 'O empacotamento em pasta falhou.' }
     Testar-Executavel (Join-Path $pastaProjeto 'dist\MancalaSoJoga\MancalaSoJoga.exe') (Join-Path $pastaProjeto 'build\verificacao-pasta.json')
 
-    & $Python -m PyInstaller --noconfirm --clean --onefile --windowed --collect-data mancala --name MancalaSoJoga --distpath dist/arquivo-unico --workpath build/arquivo-unico --specpath build/arquivo-unico iniciar.pyw
+    & $Python -m PyInstaller --noconfirm --clean --onefile --windowed @exclusoes --name MancalaSoJoga --distpath dist/arquivo-unico --workpath build/arquivo-unico --specpath build/arquivo-unico iniciar.pyw
     if ($LASTEXITCODE -ne 0) { throw 'O empacotamento em arquivo unico falhou.' }
     Testar-Executavel (Join-Path $pastaProjeto 'dist\arquivo-unico\MancalaSoJoga.exe') (Join-Path $pastaProjeto 'build\verificacao-arquivo-unico.json')
 
