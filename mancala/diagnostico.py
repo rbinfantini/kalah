@@ -6,6 +6,50 @@ import traceback
 import sys
 
 
+def medir_abertura(caminho_relatorio):
+    """Registra o instante do primeiro menu desenhado; o cronômetro é externo.
+
+    Usa uma janela mapeada fora da tela e partidas temporárias. O mesmo modo
+    deve existir nos dois pacotes comparados, para medir até o mesmo marco.
+    """
+    import time
+    import tkinter as tk
+    from .interface import Aplicativo
+    from .tabuleiro import Tabuleiro
+
+    with tempfile.TemporaryDirectory(prefix='mancala-abertura-') as pasta:
+        janela = tk.Tk()
+        janela.withdraw()
+        app = None
+        erros = []
+        janela.report_callback_exception = lambda tipo, valor, pilha: erros.append(str(valor))
+        try:
+            app = Aplicativo(janela, pasta)
+            janela.geometry('1200x800+10000+10000')
+            janela.deiconify()
+            janela.update()
+            janela.update_idletasks()
+            pronto_em = time.perf_counter()
+
+            def tabuleiros(pai):
+                for filho in pai.winfo_children():
+                    if isinstance(filho, Tabuleiro):
+                        yield filho
+                    yield from tabuleiros(filho)
+
+            desenhos = list(tabuleiros(janela))
+            if erros or not desenhos or any(len(t.areas) != 14 for t in desenhos):
+                raise RuntimeError(f'O menu não terminou de desenhar: {erros}')
+            relatorio = {'pronto_em': pronto_em, 'empacotado': bool(getattr(sys, 'frozen', False)),
+                         'resolucao': '1200x800', 'marco': 'menu e tabuleiro desenhados'}
+            Path(caminho_relatorio).write_text(json.dumps(relatorio), encoding='utf-8')
+        finally:
+            if app is not None:
+                app.sair()
+            else:
+                janela.destroy()
+
+
 def verificar_instalacao(caminho_relatorio):
     relatorio = {'sucesso': False, 'empacotado': bool(getattr(sys, 'frozen', False)),
                  'executavel': Path(sys.executable).name, 'verificacoes': []}
@@ -15,7 +59,8 @@ def verificar_instalacao(caminho_relatorio):
         from .interface import Aplicativo
         from .partidas import Partida
         from .tutorial import ETAPAS
-        from .tabuleiro import RECURSOS
+        from PIL import ImageTk
+        from .graficos import renderizar_tabuleiro, renderizar_anel, renderizar_semente
 
         janela = tk.Tk()
         janela.withdraw()
@@ -23,15 +68,19 @@ def verificar_instalacao(caminho_relatorio):
         janela.report_callback_exception = lambda tipo, valor, pilha: erros_tk.append(
             ''.join(traceback.format_exception(tipo, valor, pilha)))
         relatorio['tcl_tk'] = str(janela.tk.call('info', 'patchlevel'))
-        graficos = [f'{tipo}-{largura}.png' for largura in range(360, 1601, 40)
-                    for tipo in ('tabuleiro', 'ativa', 'foco', 'destaque')]
-        graficos += [f'semente-{cor}-{tamanho}.png' for tamanho in range(6, 31, 2)
-                     for cor in range(4)]
-        for nome in graficos:
-            imagem = tk.PhotoImage(master=janela, file=str(RECURSOS / nome))
-            if imagem.width() <= 0 or imagem.height() <= 0:
-                raise RuntimeError(f'Recurso gráfico inválido: {nome}')
-        relatorio['verificacoes'].append(f'{len(graficos)} gráficos incluídos e legíveis')
+        def conferir(desenho):
+            imagem = ImageTk.PhotoImage(desenho, master=janela)
+            if (imagem.width(), imagem.height()) != desenho.size:
+                raise RuntimeError('Falha ao transferir um desenho do Pillow para o Tk.')
+
+        for largura in range(360, 1601, 40):
+            conferir(renderizar_tabuleiro(largura))
+            for tipo in ('ativa', 'foco', 'destaque'):
+                conferir(renderizar_anel(tipo, largura))
+        for tamanho in range(6, 31, 2):
+            for cor in range(4):
+                conferir(renderizar_semente(cor, tamanho))
+        relatorio['verificacoes'].append('180 variações geradas com Pillow e exibidas pelo Tk')
         with tempfile.TemporaryDirectory(prefix='mancala-verificacao-') as pasta:
             app = Aplicativo(janela, pasta)
             for acao in (app.escolher_modo, app.escolher_dificuldade, app.menu, app.listar_partidas):

@@ -1,11 +1,10 @@
 """Canvas do tabuleiro: desenha e recebe entradas; não aplica regras do jogo."""
 import math
 import tkinter as tk
-from pathlib import Path
+from PIL import ImageTk
 from .aparencia import FUNDO, TEXTO, SUAVE
 from .regras import CASAS, DEPOSITOS
-
-RECURSOS = Path(__file__).resolve().parent / 'recursos'
+from .graficos import limites_casas, renderizar_tabuleiro, renderizar_anel, renderizar_semente
 
 
 def dentro_da_casa(x, y, limites):
@@ -90,10 +89,24 @@ class Tabuleiro(tk.Canvas):
             self.escolher(self.foco)
         return 'break'
 
-    def imagem(self, nome):
-        if nome not in self.imagens:
-            self.imagens[nome] = tk.PhotoImage(master=self, file=str(RECURSOS / nome))
-        return self.imagens[nome]
+    def imagem(self, tipo, tamanho, cor=0):
+        """Mantém as referências Tk do tamanho atual e reaproveita os desenhos."""
+        chave = (tipo, tamanho, cor)
+        if chave not in self.imagens:
+            if tipo == 'tabuleiro':
+                desenho = renderizar_tabuleiro(tamanho)
+            elif tipo == 'semente':
+                desenho = renderizar_semente(cor, tamanho)
+            else:
+                desenho = renderizar_anel(tipo, tamanho)
+            self.imagens[chave] = ImageTk.PhotoImage(desenho, master=self)
+        return self.imagens[chave]
+
+    def destroy(self):
+        # PhotoImages nunca sobrevivem ao Canvas nem ao interpretador Tcl/Tk.
+        self.delete('all')
+        self.imagens.clear()
+        super().destroy()
 
     def desenhar(self):
         self.delete('all')
@@ -108,12 +121,8 @@ class Tabuleiro(tk.Canvas):
         if tamanho != self.largura_imagem:
             self.imagens.clear()
             self.largura_imagem = tamanho
-        self.create_image(largura/2, altura/2, image=self.imagem(f'tabuleiro-{tamanho}.png'))
-        areas = {13: (35,65,135,335), 7: (1065,65,1165,335)}
-        for coluna, superior in enumerate(reversed(CASAS[1])):
-            x = 169 + coluna*148
-            areas[superior] = (x,48,x+122,170)
-            areas[coluna] = (x,222,x+122,344)
+        self.create_image(largura/2, altura/2, image=self.imagem('tabuleiro', tamanho))
+        areas = limites_casas()
         self.areas = {}
         for posicao, (x1,y1,x2,y2) in areas.items():
             self.areas[posicao] = (dx+x1*escala, dy+y1*escala, dx+x2*escala, dy+y2*escala)
@@ -125,7 +134,7 @@ class Tabuleiro(tk.Canvas):
                 ) else 'ativa' if ativa else None
                 if anel:
                     self.create_image(dx+cx*escala, dy+cy*escala,
-                                      image=self.imagem(f'{anel}-{tamanho}.png'))
+                                      image=self.imagem(anel, tamanho))
             quantidade = self.sementes[posicao]
             raio = min(14, 43 / math.sqrt(max(1, quantidade)))
             tamanho_semente = max(6, min(30, round(raio*2*escala/2)*2))
@@ -135,7 +144,7 @@ class Tabuleiro(tk.Canvas):
                 x = cx + math.cos(angulo)*distancia*((x2-x1)/2-raio-13)
                 y = cy + math.sin(angulo)*distancia*((y2-y1)/2-raio-13)
                 self.create_image(dx+x*escala, dy+y*escala,
-                    image=self.imagem(f'semente-{(indice+posicao)%4}-{tamanho_semente}.png'))
+                    image=self.imagem('semente', tamanho_semente, (indice+posicao)%4))
             ynumero = 354 if posicao in DEPOSITOS else 191 if posicao in CASAS[1] else 365
             self.create_text(dx+cx*escala, dy+ynumero*escala, text=str(quantidade),
                              fill='#f2dbc0' if posicao in DEPOSITOS else '#b1dfd4' if ativa else '#d1c4b6',

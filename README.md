@@ -1,6 +1,6 @@
 # Mancala Só Joga
 
-Jogo em Python com interface escura, tabuleiro proporcional e nomes em português. As regras são separadas da interface. Para jogar, usa apenas a biblioteca padrão, sem serviços online.
+Jogo em Python com interface escura, tabuleiro proporcional e nomes em português. As regras são separadas da interface. Os gráficos são gerados por código com Pillow; o jogo funciona offline.
 
 ## Jogar sem instalar Python
 
@@ -12,13 +12,13 @@ O pacote é para Windows de 64 bits. Linux e macOS precisam de distribuições p
 
 ## Executar o código para desenvolver
 
-No Windows, use Python 3.10 ou superior com Tcl/Tk e dê dois cliques em **`iniciar.pyw`**. Quando a extensão `.pyw` está associada ao Python no Windows, o jogo abre sem janela de terminal. Se o arquivo abrir num editor, escolha o Python (pythonw.exe) em **Abrir com** ou execute `pyw -3 iniciar.pyw` pelo terminal.
+No Windows, use Python 3.10 ou superior com Tcl/Tk. Instale as dependências conforme os comandos abaixo antes de abrir **`iniciar.pyw`**. Quando a extensão `.pyw` está associada ao Python no Windows, o jogo abre sem janela de terminal. Se o arquivo abrir num editor, escolha o Python (pythonw.exe) em **Abrir com** ou execute `pyw -3 iniciar.pyw` pelo terminal.
 
-O arquivo `depurar.bat` abre o jogo **com terminal** para diagnóstico. Também é possível executar `python main.py`. As instalações oficiais do Python para Windows normalmente incluem Tkinter; em outros sistemas pode ser necessário instalá-lo separadamente. Não há dependências externas para instalar.
+O arquivo `depurar.bat` abre o jogo **com terminal** para diagnóstico. Também é possível executar `python main.py`. As instalações oficiais do Python para Windows normalmente incluem Tkinter; em outros sistemas pode ser necessário instalá-lo separadamente. Pillow é a única dependência externa de execução e está fixada em `requirements.txt`.
 
 Se a inicialização sem console falhar, um aviso é exibido e o diagnóstico é salvo em `logs/inicializacao.log`, quando a pasta permite escrita.
 
-`pyproject.toml` declara a versão do projeto, Python mínimo e dependências de execução: a lista é vazia. **Tkinter não é instalado com `pip install tkinter`**: ele faz parte de uma instalação Python com suporte Tcl/Tk. Para verificar sua instalação, execute `python -m tkinter`; deve abrir uma janela de demonstração. `requirements-build.txt` fixa a versão da ferramenta usada para gerar o executável.
+`pyproject.toml` declara a versão do projeto, Python mínimo e a dependência de execução Pillow. A instalação do projeto com `pip install -e .` não instala o empacotador. **Tkinter não é instalado com `pip install tkinter`**: ele faz parte de uma instalação Python com suporte Tcl/Tk. Para verificar sua instalação, execute `python -m tkinter`; deve abrir uma janela de demonstração. `requirements.txt` reúne Pillow e PyInstaller para desenvolver e gerar o executável, conforme a configuração atual da branch principal.
 
 Para desenvolver, crie seu próprio ambiente virtual na raiz do projeto:
 
@@ -57,7 +57,7 @@ O percurso troca a ordem numérica de P6/P7 para preservar seis casas por jogado
 
 ## Menus e partidas
 
-Menu: Jogar, Carregar jogo, Aprender a jogar e Sair. Jogar permite dupla ou máquina; máquina oferece Fácil, Normal e Difícil. Menu e Sair permanecem disponíveis durante cálculos e animações. Clique nas casas iluminadas ou use as teclas 1–6 da esquerda para a direita. No tabuleiro, setas mudam o foco e Enter/Espaço confirmam; Tab percorre os controles.
+Menu: Jogar, Carregar jogo, Aprender a jogar e Sair. Jogar permite dupla ou máquina; máquina oferece Fácil, Normal e Difícil. Menu e Sair permanecem disponíveis durante cálculos e animações. Clique nas casas iluminadas ou use as teclas 1–6 da esquerda para a direita. No tabuleiro, setas mudam o foco e Enter/Espaço confirmam; Tab percorre os controles. A animação normal usa aproximadamente 0,20 segundo por semente; Rápido e Sem animação permanecem disponíveis.
 
 As partidas são salvas automaticamente ao iniciar e após cada escolha. Na execução a partir deste repositório, ficam na pasta `partidas_salvas/` do projeto. No executável Windows, ficam em `%LOCALAPPDATA%\MancalaSoJoga\partidas_salvas`, fora das bibliotecas e dos arquivos de instalação. Os logs do executável ficam em `%LOCALAPPDATA%\MancalaSoJoga\logs`. Assim, atualizar o executável não apaga as partidas.
 
@@ -70,6 +70,8 @@ Sair durante uma animação preserva o resultado completo da jogada. Carregar mo
 - Fácil: escolha aleatória válida.
 - Normal: minimax com poda alfa-beta, até cinco escolhas e aproximadamente 0,35 segundo.
 - Difícil: aprofundamento progressivo, até 28 escolhas e aproximadamente quatro segundos, ordenação de capturas/turnos extras e cache de posições com limites alfa-beta.
+
+A interface exibe “Pensando…” por pelo menos cinco segundos a cada escolha da máquina. A busca acontece durante essa espera; se demorar mais, a interface aguarda sua conclusão. Menu e Sair continuam disponíveis.
 
 A profundidade conta escolhas, incluindo turnos extras. O computador usa as mesmas regras, sem vantagens artificiais, e mantém o resultado da última profundidade concluída quando o tempo acaba. Não há livro de aberturas nem garantia de jogo perfeito. A força competitiva ainda requer avaliação extensa; este é o nível mais profundo oferecido, não uma certificação de dificuldade extrema.
 
@@ -91,13 +93,14 @@ A profundidade conta escolhas, incluindo turnos extras. O computador usa as mesm
 | `mancala/interface.py` | Menus, desenho e coordenação da janela |
 | `mancala/aparencia.py` | Paleta, tipografia e estilos dos controles ttk |
 | `mancala/tabuleiro.py` | Desenho da madeira e sementes; seleção por mouse e teclado |
-| `mancala/recursos/` | Gráficos PNG usados pelo jogo |
-| `scripts/gerar_graficos.py` | Geração dos gráficos com bordas suavizadas |
+| `mancala/graficos.py` | Desenhos com Pillow, suavização e cache limitado em memória |
 | `testes/test_regras.py` | Regras, busca e armazenamento |
 | `testes/test_caminhos.py` | Separação dos dados entre código e executável |
-| `testes/test_interface.py` | Navegação, foco, filtros, animação e layout com Tk real |
+| `testes/test_interface.py` | Navegação, foco, ritmo, espera da máquina e layout com Tk real |
+| `testes/test_graficos.py` | Regressão de pixels e limites do cache gráfico |
 | `pyproject.toml` | Metadados, versão, Python mínimo e instalação do projeto |
-| `requirements-build.txt` | Ferramenta de empacotamento |
+| `requirements.txt` | Pillow e PyInstaller para desenvolvimento e empacotamento |
+| `scripts/comparar_abertura.py` | Comparação local do tamanho e tempo de abertura de dois pacotes |
 | `scripts/empacotar_windows.ps1` | Construção e verificação dos pacotes |
 | `.github/workflows/windows.yml` | Automação dos testes, construção e publicação |
 
@@ -124,7 +127,7 @@ Verificações: percurso dos dois jogadores, 48 sementes, depósitos que nunca d
 
 Os testes automatizados não substituem a verificação visual da interface. Quem desenvolve precisa de Python com Tkinter; quem usa o pacote Windows recebe esse ambiente incluído.
 
-Os testes de interface usam dados temporários e precisam de um ambiente gráfico. Sem Tk disponível, são marcados como ignorados. Consulte [interface e recursos gráficos](docs/interface.md) para os controles, a organização e a geração dos PNGs.
+Os testes de interface usam dados temporários e precisam de um ambiente gráfico. Sem Tk disponível, são marcados como ignorados. Consulte [interface e recursos gráficos](docs/interface.md) para os controles, a organização e a geração dos desenhos em memória.
 
 ## Gerar o pacote Windows
 
@@ -135,7 +138,7 @@ Uma versão ainda não publicada em `main` gera uma Release com EXE, ZIP e SHA25
 Para gerar localmente no Windows, após criar o ambiente virtual:
 
 ```powershell
-.\.venv\Scripts\python.exe -m pip install -r requirements-build.txt
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
 powershell -File scripts/empacotar_windows.ps1 -Python .\.venv\Scripts\python.exe
 ```
 
@@ -165,3 +168,13 @@ git push -u origin melhoria/nome-da-alteracao
 ```
 
 Revise os arquivos antes do commit. Não use `git add -f` para arquivos ignorados. Ao atualizar uma instalação anterior, copie `partidas_salvas/` para a nova pasta se quiser continuar suas partidas; essa pasta permanece local.
+
+## Comparar a abertura localmente
+
+Ambos os EXEs devem aceitar `--medir-abertura`. O script abre processos novos, aquece uma vez cada versão, alterna a ordem e mede até o primeiro menu e tabuleiro completos, incluindo a extração do pacote. Usa partidas temporárias e janela fora da tela; não altera partidas pessoais.
+
+```powershell
+.\.venv\Scripts\python.exe scripts/comparar_abertura.py caminho/antes.exe caminho/depois.exe --saida build/comparacao-abertura.json
+```
+
+Compare pacotes construídos com as mesmas versões de Python e PyInstaller. Os números dependem do computador, do antivírus e do cache do sistema; não representam abertura após reiniciar o Windows. O relatório fica fora do Git.

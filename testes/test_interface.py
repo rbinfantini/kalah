@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import ttk
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 import re
 from mancala.interface import Aplicativo
 from mancala.partidas import Partida
@@ -33,7 +34,63 @@ class TestInterface(unittest.TestCase):
 
     def fechar(self):
         if self.janela.winfo_exists():
+            self.janela.update_idletasks()
             self.app.sair()
+
+
+    def iniciar_turno_maquina(self, instante=100.0):
+        partida = Partida(modo='maquina')
+        partida.jogar(0)
+        self.app.iniciar(partida)
+        with patch('mancala.interface.threading.Thread'), patch('mancala.interface.time.monotonic', return_value=instante):
+            self.app.iniciar_calculo()
+        return self.app.geracao
+
+    def test_maquina_espera_cinco_segundos_com_resposta_pronta(self):
+        geracao = self.iniciar_turno_maquina()
+        self.app.respostas.put((geracao, SimpleNamespace(casa=12), None))
+        self.app.receber_jogada_maquina(104.99)
+        self.assertTrue(self.app.calculando)
+        self.assertEqual(self.app.partida.jogadas, 1)
+        self.assertFalse(self.app.pode_jogar())
+        self.app.receber_jogada_maquina(105.0)
+        self.assertFalse(self.app.calculando)
+        self.assertEqual(self.app.partida.jogadas, 2)
+
+    def test_maquina_nao_soma_cinco_segundos_ao_tempo_de_busca(self):
+        geracao = self.iniciar_turno_maquina()
+        self.app.receber_jogada_maquina(105.1)
+        self.assertTrue(self.app.calculando)
+        self.app.respostas.put((geracao, SimpleNamespace(casa=12), None))
+        self.app.receber_jogada_maquina(106.0)
+        self.assertEqual(self.app.partida.jogadas, 2)
+
+    def test_voltar_cancela_espera_e_descarta_resposta_antiga(self):
+        geracao_antiga = self.iniciar_turno_maquina()
+        self.app.voltar()
+        self.assertEqual(self.app.tela, 'menu')
+        self.assertFalse(self.app.calculando)
+        geracao = self.iniciar_turno_maquina(instante=200.0)
+        self.app.respostas.put((geracao_antiga, SimpleNamespace(casa=12), None))
+        self.app.respostas.put((geracao, SimpleNamespace(casa=12), None))
+        self.app.receber_jogada_maquina(205.0)
+        self.assertEqual(self.app.partida.jogadas, 1)
+        self.app.receber_jogada_maquina(205.04)
+        self.assertEqual(self.app.partida.jogadas, 2)
+
+    def test_ritmo_normal_aguarda_mais_que_o_rapido(self):
+        def avancar_160_ms(ritmo):
+            self.app.iniciar(Partida())
+            self.app.velocidade.set(ritmo)
+            self.app.selecionar_casa(0)
+            self.app.animador.avancar(0)
+            self.janela.after_cancel(self.app.temporizador)
+            self.app.ultimo_quadro = 100.0
+            with patch('mancala.interface.time.monotonic', return_value=100.16):
+                self.app.atualizar()
+            return self.app.animador.indice
+        self.assertEqual(avancar_160_ms('Normal'), 1)
+        self.assertEqual(avancar_160_ms('Rápido'), 2)
 
     def concluir_jogada(self):
         self.app.velocidade.set('Sem animação')
@@ -99,6 +156,25 @@ class TestInterface(unittest.TestCase):
     def test_area_clicavel_exclui_cantos_da_elipse(self):
         self.assertTrue(dentro_da_casa(50, 40, (0, 0, 100, 80)))
         self.assertFalse(dentro_da_casa(1, 1, (0, 0, 100, 80)))
+
+    def test_graficos_reutilizados_e_liberados_ao_sair_da_tela(self):
+        self.app.iniciar(Partida())
+        self.janela.geometry('1100x680+1800+100')
+        self.janela.deiconify()
+        self.janela.update()
+        tabuleiro = self.app.tabuleiro
+        sementes = [0] * 14
+        sementes[0] = 48
+        tabuleiro.atualizar(sementes, (0,))
+        imagens = dict(tabuleiro.imagens)
+        tabuleiro.atualizar(sementes, (0,))
+        self.assertEqual(tabuleiro.imagens, imagens)
+        self.assertEqual(sum(tabuleiro.type(item) == 'image'
+                             for item in tabuleiro.find_all()), 50)  # Madeira, anel e 48 sementes.
+        nomes = {str(imagem) for imagem in imagens.values()}
+        imagens.clear()
+        self.app.menu()
+        self.assertFalse(nomes.intersection(self.janela.tk.call('image', 'names')))
 
     def test_tabuleiro_mantem_casas_circulares_ao_redimensionar(self):
         self.app.iniciar(Partida())
