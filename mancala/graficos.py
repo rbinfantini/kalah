@@ -14,6 +14,14 @@ AMPLIACAO = 3
 
 
 def limites_casas():
+    """
+    Retorna os limites geométricos das casas e depósitos do tabuleiro.
+
+    Returns
+    -------
+    dict
+        Mapa de posição para retângulos das cavidades do tabuleiro.
+    """
     casas = {13: (35, 65, 135, 335), 7: (1065, 65, 1165, 335)}
     for coluna, superior in enumerate((12, 11, 10, 9, 8, 6)):
         x = 169 + coluna * 148
@@ -24,6 +32,14 @@ def limites_casas():
 
 @lru_cache(maxsize=1)
 def _desenhar_tabuleiro_base():
+    """
+    Gera o tabuleiro base em alta resolução para reutilização em todas as escalas.
+
+    Returns
+    -------
+    Image.Image
+        Imagem do tabuleiro com textura e casas já desenhadas.
+    """
     tamanho = tuple(v * AMPLIACAO for v in BASE)
     imagem = Image.new('RGBA', tamanho)
     desenho = ImageDraw.Draw(imagem)
@@ -87,6 +103,21 @@ def _desenhar_tabuleiro_base():
 
 @lru_cache(maxsize=52)
 def renderizar_semente(indice_cor, tamanho):
+    """
+    Cria uma semente visualmente suave em uma cor e tamanho específicos.
+
+    Parameters
+    ----------
+    indice_cor : int
+        Índice da cor da semente.
+    tamanho : int
+        Tamanho final da imagem da semente.
+
+    Returns
+    -------
+    Image.Image
+        Semente renderizada pronta para uso no Canvas.
+    """
     """Cria uma semente suavizada; os 52 pares de cor/tamanho cabem no cache."""
     if indice_cor not in range(len(CORES_SEMENTES)) or tamanho not in range(6, 31, 2):
         raise ValueError('Cor ou tamanho de semente inválido.')
@@ -114,12 +145,38 @@ CORES_ANEIS = {'ativa': '#8bbdba', 'foco': '#e6bf79', 'destaque': '#f3ead7'}
 
 
 def _validar_largura(largura):
+    """
+    Valida a largura da renderização do tabuleiro.
+
+    Parameters
+    ----------
+    largura : int
+        Largura alvo em pixels.
+
+    Raises
+    ------
+    ValueError
+        Se a largura estiver fora do intervalo permitido.
+    """
     if largura not in range(360, 1601, 40):
         raise ValueError('A largura deve estar entre 360 e 1600, em passos de 40.')
 
 
 @lru_cache(maxsize=2)
 def renderizar_tabuleiro(largura):
+    """
+    Renderiza a imagem do tabuleiro em uma largura específica.
+
+    Parameters
+    ----------
+    largura : int
+        Largura em pixels do tabuleiro renderizado.
+
+    Returns
+    -------
+    Image.Image
+        Imagem do tabuleiro pronta para exibição.
+    """
     """Reduz o original com Lanczos; guarda apenas dois tamanhos recentes."""
     _validar_largura(largura)
     return _desenhar_tabuleiro_base().resize(
@@ -128,6 +185,21 @@ def renderizar_tabuleiro(largura):
 
 @lru_cache(maxsize=12)
 def renderizar_anel(tipo, largura):
+    """
+    Gera o anel de destaque visual para casas selecionadas ou disponíveis.
+
+    Parameters
+    ----------
+    tipo : str
+        Tipo de destaque: ativa, foco ou destaque.
+    largura : int
+        Largura da área de renderização.
+
+    Returns
+    -------
+    Image.Image
+        Anel renderizado para sobrepor a casa do tabuleiro.
+    """
     """Desenha a indicação de casa disponível, foco ou exercício do tutorial."""
     _validar_largura(largura)
     if tipo not in CORES_ANEIS:

@@ -8,13 +8,54 @@ from .graficos import limites_casas, renderizar_tabuleiro, renderizar_anel, rend
 
 
 def dentro_da_casa(x, y, limites):
-    """A área clicável acompanha a cavidade elíptica, sem cantos invisíveis."""
+    """
+    Verifica se um ponto pertence à área elíptica de uma casa.
+
+    Parameters
+    ----------
+    x : float
+        Coordenada x do clique.
+    y : float
+        Coordenada y do clique.
+    limites : tuple
+        Retângulo que envolve a casa.
+
+    Returns
+    -------
+    bool
+        True quando o ponto cai dentro da forma elíptica da casa.
+    """
     x1, y1, x2, y2 = limites
     return ((x - (x1+x2)/2) / ((x2-x1)/2))**2 + ((y - (y1+y2)/2) / ((y2-y1)/2))**2 <= 1
 
 
 class Tabuleiro(tk.Canvas):
+    """
+    Canvas especializado em renderizar e interagir com o tabuleiro do jogo.
+
+    Parameters
+    ----------
+    pai : tk.Misc
+        Container onde o widget será anexado.
+    escolher : callable, optional
+        Callback usado ao confirmar uma casa.
+    **opcoes
+        Opções adicionais para o Canvas Tk.
+    """
+
     def __init__(self, pai, escolher=None, **opcoes):
+        """
+        Inicializa o canvas com eventos de interface e estado interno do tabuleiro.
+
+        Parameters
+        ----------
+        pai : tk.Misc
+            Container do widget.
+        escolher : callable, optional
+            Função chamada quando uma casa é selecionada.
+        **opcoes
+            Atributos extras do Canvas.
+        """
         self.cor_rotulos = opcoes.pop('cor_rotulos', SUAVE)
         super().__init__(pai, bg=opcoes.pop('bg', FUNDO), highlightthickness=0,
                          takefocus=bool(escolher), **opcoes)
@@ -37,6 +78,23 @@ class Tabuleiro(tk.Canvas):
         self.bind('<space>', self.confirmar)
 
     def atualizar(self, sementes, disponiveis=(), destaque=None):
+        """
+        Atualiza o estado visual do tabuleiro e as casas disponíveis.
+
+        Parameters
+        ----------
+        sementes : tuple[int, ...]
+            Total de sementes em cada posição.
+        disponiveis : tuple[int, ...], optional
+            Casas válidas para a jogada atual.
+        destaque : int, optional
+            Casa destacada na animação.
+
+        Returns
+        -------
+        None
+            Redesenha o tabuleiro com o novo estado.
+        """
         self.sementes = sementes
         self.disponiveis = tuple(disponiveis)
         self.destaque = destaque
@@ -48,9 +106,37 @@ class Tabuleiro(tk.Canvas):
         self.desenhar()
 
     def casa_em(self, x, y):
+        """
+        Converte coordenadas do mouse em uma casa do tabuleiro.
+
+        Parameters
+        ----------
+        x : float
+            Posição x do cursor.
+        y : float
+            Posição y do cursor.
+
+        Returns
+        -------
+        int or None
+            Casa sob o ponteiro ou None quando não está em nenhuma área válida.
+        """
         return next((p for p, area in self.areas.items() if dentro_da_casa(x, y, area)), None)
 
     def mover_mouse(self, evento):
+        """
+        Atualiza o estado de hover quando o mouse move sobre o tabuleiro.
+
+        Parameters
+        ----------
+        evento : tk.Event
+            Evento do mouse.
+
+        Returns
+        -------
+        None
+            Redesenha a interface com o novo hover.
+        """
         casa = self.casa_em(evento.x, evento.y)
         sobre = casa if casa in self.disponiveis else None
         if sobre != self.sobre:
@@ -59,12 +145,38 @@ class Tabuleiro(tk.Canvas):
             self.desenhar()
 
     def sair_mouse(self, _):
+        """
+        Limpa o destaque do mouse ao sair da área do tabuleiro.
+
+        Parameters
+        ----------
+        _ : object
+            Evento ignorado.
+
+        Returns
+        -------
+        None
+            Remove o estado de hover.
+        """
         if self.sobre is not None:
             self.sobre = None
             self.configure(cursor='')
             self.desenhar()
 
     def clicar(self, evento):
+        """
+        Trata clique do usuário para selecionar uma casa jogável.
+
+        Parameters
+        ----------
+        evento : tk.Event
+            Evento de clique do mouse.
+
+        Returns
+        -------
+        None
+            Chama o callback de seleção quando a casa é válida.
+        """
         casa = self.casa_em(evento.x, evento.y)
         if casa in self.disponiveis and self.escolher:
             self.foco = casa
@@ -72,11 +184,37 @@ class Tabuleiro(tk.Canvas):
             self.escolher(casa)
 
     def receber_foco(self, _):
+        """
+        Ajusta o foco de teclado ao receber atenção do canvas.
+
+        Parameters
+        ----------
+        _ : object
+            Evento ignorado.
+
+        Returns
+        -------
+        None
+            Define a casa inicial do foco, se necessário.
+        """
         if self.foco is None and self.disponiveis:
             self.foco = self.disponiveis[0]
         self.desenhar()
 
     def mover_foco(self, passo):
+        """
+        Move o foco de teclado entre as casas disponíveis.
+
+        Parameters
+        ----------
+        passo : int
+            Deslocamento do foco no conjunto de casas válidas.
+
+        Returns
+        -------
+        str
+            Sempre 'break' para evitar o avanço do comportamento padrão.
+        """
         casas = sorted(self.disponiveis, key=lambda p: self.areas.get(p, (0,))[0])
         if casas:
             atual = casas.index(self.foco) if self.foco in casas else 0
@@ -85,12 +223,41 @@ class Tabuleiro(tk.Canvas):
         return 'break'
 
     def confirmar(self, _):
+        """
+        Confirma a casa em foco por teclado.
+
+        Parameters
+        ----------
+        _ : object
+            Evento ignorado.
+
+        Returns
+        -------
+        str
+            Sempre 'break' para bloquear o comportamento padrão do teclado.
+        """
         if self.foco in self.disponiveis and self.escolher:
             self.escolher(self.foco)
         return 'break'
 
     def imagem(self, tipo, tamanho, cor=0):
-        """Mantém as referências Tk do tamanho atual e reaproveita os desenhos."""
+        """
+        Gera ou reutiliza uma imagem Tk para o tipo e tamanho solicitados.
+
+        Parameters
+        ----------
+        tipo : str
+            Tipo de imagem: tabuleiro, semente ou anel.
+        tamanho : int
+            Tamanho alvo da imagem.
+        cor : int, optional
+            Índice da cor, quando a imagem é uma semente.
+
+        Returns
+        -------
+        ImageTk.PhotoImage
+            Imagem mantida em cache para o canvas.
+        """
         chave = (tipo, tamanho, cor)
         if chave not in self.imagens:
             if tipo == 'tabuleiro':
@@ -103,12 +270,27 @@ class Tabuleiro(tk.Canvas):
         return self.imagens[chave]
 
     def destroy(self):
-        # PhotoImages nunca sobrevivem ao Canvas nem ao interpretador Tcl/Tk.
+        """
+        Libera as imagens em cache antes de destruir o canvas.
+
+        Returns
+        -------
+        None
+            Remove referências de PhotoImage e encerra o widget.
+        """
         self.delete('all')
         self.imagens.clear()
         super().destroy()
 
     def desenhar(self):
+        """
+        Redesenha o tabuleiro inteiro com o estado atual de sementes e destaques.
+
+        Returns
+        -------
+        None
+            Atualiza o conteúdo visual do canvas.
+        """
         self.delete('all')
         largura, altura = self.winfo_width(), self.winfo_height()
         if largura < 20 or altura < 20:

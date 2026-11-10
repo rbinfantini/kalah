@@ -5,6 +5,14 @@ import sys
 
 
 def pasta_dados():
+    """
+    Retorna a pasta de dados persistentes do jogo conforme o modo de execução.
+
+    Returns
+    -------
+    Path
+        Diretório usado para saves, logs e arquivos de configuração.
+    """
     if getattr(sys, 'frozen', False):
         base = os.environ.get('LOCALAPPDATA')
         return (Path(base) if base else Path.home() / 'AppData' / 'Local') / 'MancalaSoJoga'

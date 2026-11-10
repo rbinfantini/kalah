@@ -7,16 +7,44 @@ from .regras import CASAS, DEPOSITOS, casas_disponiveis, resolver_jogada
 
 @dataclass(frozen=True)
 class Recomendacao:
+    """
+    Resultado compacto de uma busca de jogada.
+
+    Parameters
+    ----------
+    casa : int
+        Casa escolhida para a jogada.
+    profundidade : int
+        Profundidade alcançada pela busca.
+    posicoes_avaliadas : int
+        Número de estados avaliados durante a busca.
+    """
     casa: int
     profundidade: int
     posicoes_avaliadas: int
 
 
 class BuscaInterrompida(Exception):
+    """Sinaliza que a busca foi interrompida por tempo ou cancelamento."""
     pass
 
 
 def avaliar_posicao(estado, jogador):
+    """
+    Avalia uma posição do tabuleiro do ponto de vista do jogador informado.
+
+    Parameters
+    ----------
+    estado : EstadoPartida
+        Situação atual do tabuleiro.
+    jogador : int
+        Jogador que está sendo avaliado.
+
+    Returns
+    -------
+    int
+        Valor heurístico da posição.
+    """
     pontos = estado.sementes[DEPOSITOS[jogador]] - estado.sementes[DEPOSITOS[1-jogador]]
     if estado.encerrada:
         return (100000 if pontos > 0 else -100000 if pontos < 0 else 0) + pontos
@@ -27,6 +55,27 @@ def avaliar_posicao(estado, jogador):
 
 def escolher_jogada(estado, dificuldade='Normal', cancelar=None, *, limite_segundos=None,
                     profundidade_maxima=None):
+    """
+    Seleciona a melhor jogada possível seguindo a dificuldade informada.
+
+    Parameters
+    ----------
+    estado : EstadoPartida
+        Estado atual da partida.
+    dificuldade : str, optional
+        Nome da dificuldade do computador.
+    cancelar : threading.Event, optional
+        Sinal de cancelamento da busca.
+    limite_segundos : float, optional
+        Tempo máximo permitido para a busca.
+    profundidade_maxima : int, optional
+        Limite explicito de profundidade da árvore.
+
+    Returns
+    -------
+    Recomendacao
+        Casa escolhida e metadados da busca.
+    """
     opcoes = casas_disponiveis(estado)
     if not opcoes:
         raise ValueError('Não há jogadas disponíveis.')

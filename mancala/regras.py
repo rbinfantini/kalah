@@ -12,23 +12,64 @@ OPOSTAS.update({oposta: casa for casa, oposta in tuple(OPOSTAS.items())})
 
 @dataclass(frozen=True)
 class EstadoPartida:
+    """
+    Estado completo de uma partida de Kalah.
+
+    Parameters
+    ----------
+    sementes : tuple[int, ...]
+        Quantidade de sementes em cada posição do tabuleiro.
+    jogador_atual : int, optional
+        Jogador da vez.
+    encerrada : bool, optional
+        Indica se o estado já está finalizado.
+    """
     sementes: tuple[int, ...]
     jogador_atual: int = 0
     encerrada: bool = False
 
     @property
     def placar(self):
+        """
+        Retorna o placar atual dos dois jogadores.
+
+        Returns
+        -------
+        tuple[int, int]
+            Sementes acumuladas nos depósitos dos jogadores.
+        """
         return tuple(self.sementes[p] for p in DEPOSITOS)
 
     @property
     def vencedor(self):
-        """None indica empate ou partida ainda aberta; consultar encerrada primeiro."""
+        """
+        Informa o vencedor final da partida, quando ela já está encerrada.
+
+        Returns
+        -------
+        int or None
+            0, 1 ou None em caso de empate ou partida em andamento.
+        """
         a, b = self.placar
         return None if not self.encerrada or a == b else int(b > a)
 
 
 @dataclass(frozen=True)
 class EventoJogada:
+    """
+    Registro de um passo da animação da jogada.
+
+    Parameters
+    ----------
+    tipo : str
+        Tipo do evento gerado pela distribuição.
+    sementes : tuple[int, ...]
+        Estado do tabuleiro após o passo.
+    na_mao : int
+        Quantidade restante de sementes em mãos.
+    posicao : int or None
+        Posição diretamente afetada pelo evento.
+    """
     tipo: str
     sementes: tuple[int, ...]
     na_mao: int
@@ -37,6 +78,20 @@ class EventoJogada:
 
 @dataclass(frozen=True)
 class ResultadoJogada:
+    """
+    Resultado completo de uma jogada validada pelo motor de regras.
+
+    Parameters
+    ----------
+    estado : EstadoPartida
+        Estado do tabuleiro após a jogada.
+    eventos : tuple[EventoJogada, ...]
+        Sequência de eventos usados pela animação.
+    capturadas : int
+        Número total de sementes capturadas na jogada.
+    turno_extra : bool
+        Indica se o jogador pode repetir a jogada.
+    """
     estado: EstadoPartida
     eventos: tuple[EventoJogada, ...]
     capturadas: int
@@ -44,10 +99,31 @@ class ResultadoJogada:
 
 
 def estado_inicial():
+    """
+    Cria a configuração inicial padrão de uma partida de Kalah.
+
+    Returns
+    -------
+    EstadoPartida
+        Tabuleiro com quatro sementes em cada casa e depósitos vazios.
+    """
     return EstadoPartida(tuple(0 if p in DEPOSITOS else 4 for p in range(14)))
 
 
 def validar_estado(estado):
+    """
+    Verifica se um estado do jogo respeita as regras de integridade.
+
+    Parameters
+    ----------
+    estado : EstadoPartida
+        Estado a ser validado.
+
+    Raises
+    ------
+    ValueError
+        Quando o estado não representa uma partida válida.
+    """
     if len(estado.sementes) != 14:
         raise ValueError('São necessárias 14 posições.')
     if any(type(n) is not int or not 0 <= n <= TOTAL_SEMENTES for n in estado.sementes):
@@ -64,7 +140,21 @@ def validar_estado(estado):
 
 
 def proxima_posicao(posicao, jogador):
-    """Única definição do percurso: avança e pula o depósito do adversário."""
+    """
+    Calcula a próxima casa no percurso do jogador.
+
+    Parameters
+    ----------
+    posicao : int
+        Casa atual.
+    jogador : int
+        Jogador cujo percurso está sendo percorrido.
+
+    Returns
+    -------
+    int
+        Próxima posição válida no caminho do jogador.
+    """
     seguinte = PROXIMAS[posicao]
     if seguinte == DEPOSITOS[1 - jogador]:
         seguinte = PROXIMAS[seguinte]
@@ -72,13 +162,42 @@ def proxima_posicao(posicao, jogador):
 
 
 def casas_disponiveis(estado):
+    """
+    Lista as casas do jogador atual que ainda possuem sementes.
+
+    Parameters
+    ----------
+    estado : EstadoPartida
+        Estado atual da partida.
+
+    Returns
+    -------
+    tuple[int, ...]
+        Casas jogáveis no momento.
+    """
     if estado.encerrada:
         return ()
     return tuple(p for p in CASAS[estado.jogador_atual] if estado.sementes[p])
 
 
 def resolver_jogada(estado, casa, *, registrar_eventos=True):
-    """Retorna outro estado. A busca usa as mesmas regras, sem fotos para animação."""
+    """
+    Executa uma jogada inteira e retorna o resultado com eventos opcionais.
+
+    Parameters
+    ----------
+    estado : EstadoPartida
+        Estado antes da jogada.
+    casa : int
+        Casa escolhida pelo jogador atual.
+    registrar_eventos : bool, optional
+        Controla se a animação deve registrar a sequência de eventos.
+
+    Returns
+    -------
+    ResultadoJogada
+        Novo estado, eventos e metadados da jogada.
+    """
     if type(casa) is not int or casa not in casas_disponiveis(estado):
         raise ValueError('Escolha uma casa sua com sementes. Depósitos não podem ser jogados.')
     sementes = list(estado.sementes)

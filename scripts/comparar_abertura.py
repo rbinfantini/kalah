@@ -1,4 +1,4 @@
-"""Compara dois EXEs locais; inclui extração do pacote e desenho inicial."""
+"""Compara a abertura de dois executáveis locais."""
 import argparse
 import hashlib
 import json
@@ -11,6 +11,26 @@ import time
 
 
 def executar(caminho, relatorio):
+    """
+    Executa um binário e mede o tempo até o relatório indicar que abriu.
+
+    Parameters
+    ----------
+    caminho : Path
+        Caminho do executável ou script a ser testado.
+    relatorio : Path
+        Arquivo JSON onde o programa grava o timestamp de pronto.
+
+    Returns
+    -------
+    float
+        Tempo de abertura em milissegundos.
+
+    Raises
+    ------
+    subprocess.CalledProcessError
+        Se a execução falhar.
+    """
     comando = [str(caminho)]
     if caminho.suffix in ('.py', '.pyw'):
         comando.insert(0, sys.executable)
@@ -22,6 +42,23 @@ def executar(caminho, relatorio):
 
 
 def comparar(antes, depois, repeticoes):
+    """
+    Compara duas versões do programa em várias repetições e resume as métricas.
+
+    Parameters
+    ----------
+    antes : Path
+        Caminho da versão anterior.
+    depois : Path
+        Caminho da versão nova.
+    repeticoes : int
+        Número de medições por versão.
+
+    Returns
+    -------
+    dict
+        Dados de desempenho com amostras e estatísticas por versão.
+    """
     amostras = {'antes': [], 'depois': []}
     caminhos = {'antes': antes.resolve(), 'depois': depois.resolve()}
     with tempfile.TemporaryDirectory(prefix='mancala-comparacao-') as pasta:

@@ -15,6 +15,19 @@ ESCURO = '#101925'
 
 
 def configurar_tema(janela):
+    """
+    Configura o tema visual compartilhado da interface Tk.
+
+    Parameters
+    ----------
+    janela : tk.Tk
+        Janela principal que receberá o estilo global.
+
+    Returns
+    -------
+    ttk.Style
+        Estilo configurado para os widgets da aplicação.
+    """
     estilo = ttk.Style(janela)
     estilo.theme_use('clam')
     estilo.configure('.', font=('Segoe UI', 11))
@@ -56,12 +69,58 @@ def configurar_tema(janela):
 
 
 def rotulo(pai, texto='', tamanho=11, cor=TEXTO, negrito=False, editorial=False, **opcoes):
+    """
+    Cria um rótulo com a tipografia visual padrão do projeto.
+
+    Parameters
+    ----------
+    pai : tk.Misc
+        Container pai do widget.
+    texto : str, optional
+        Texto exibido no rótulo.
+    tamanho : int, optional
+        Tamanho da fonte em pontos.
+    cor : str, optional
+        Cor do texto.
+    negrito : bool, optional
+        Ativa a variação negrito.
+    editorial : bool, optional
+        Ativa a estilo editorial, semelhante ao destaque do título.
+    **opcoes
+        Opções adicionais para o widget Tk.
+
+    Returns
+    -------
+    tk.Label
+        Rótulo montado com o estilo do projeto.
+    """
     fonte = ('Segoe UI', tamanho, 'bold' if negrito or editorial else 'normal')
     return tk.Label(pai, text=texto, bg=pai.cget('bg'), fg=cor, font=fonte,
                     anchor='w', justify='left', **opcoes)
 
 
 def botao(pai, texto, acao, principal=False, estilo=None):
+    """
+    Cria um botão com os estilos visuais do jogo.
+
+    Parameters
+    ----------
+    pai : tk.Misc
+        Container do botão.
+    texto : str
+        Texto exibido no controle.
+    acao : callable
+        Função executada ao clicar.
+    principal : bool, optional
+        Usa o esquema de destaque principal.
+    estilo : str, optional
+        Nome de estilo ttk explícito.
+
+    Returns
+    -------
+    ttk.Button
+        Botão pronto para ser anexado ao layout.
+    """
     controle = ttk.Button(pai, text=texto, command=acao, takefocus=True,
                           style=estilo or ('Principal.TButton' if principal else 'TButton'))
     controle.bind('<Return>', lambda _: controle.invoke())
@@ -69,4 +128,19 @@ def botao(pai, texto, acao, principal=False, estilo=None):
 
 
 def painel(pai, **opcoes):
+    """
+    Cria um painel com borda sutil e fundo do tema do jogo.
+
+    Parameters
+    ----------
+    pai : tk.Misc
+        Container dono do painel.
+    **opcoes
+        Atributos extras para o widget tk.Frame.
+
+    Returns
+    -------
+    tk.Frame
+        Painel estilizado para menus e blocos de conteúdo.
+    """
     return tk.Frame(pai, bg=PAPEL, highlightbackground=LINHA, highlightthickness=1, **opcoes)
