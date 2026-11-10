@@ -21,6 +21,12 @@ def limites_casas():
     -------
     dict
         Mapa de posição para retângulos das cavidades do tabuleiro.
+
+    Notes
+    -----
+    Cada retângulo é (esquerda, topo, direita, fundo), na base 1200 × 400.
+    O desenho e as áreas clicáveis usam esta mesma geometria para
+    continuarem alinhados ao redimensionar.
     """
     casas = {13: (35, 65, 135, 335), 7: (1065, 65, 1165, 335)}
     for coluna, superior in enumerate((12, 11, 10, 9, 8, 6)):
@@ -65,6 +71,8 @@ def _desenhar_tabuleiro_base():
     ImageDraw.Draw(mascara).rounded_rectangle(caixa((24, 24, 1176, 362)), 36*AMPLIACAO, fill=255)
     textura = Image.new('RGBA', tamanho)
     pena = ImageDraw.Draw(textura)
+    # A semente fixa mantém a textura estável e os testes de pixels reproduzíveis.
+    # Este gerador local não altera o sorteio de jogadas do nível Fácil.
     aleatorio = random.Random(84)
     for linha in range(180):
         y = 25 + linha*1.9
@@ -176,6 +184,12 @@ def renderizar_tabuleiro(largura):
     -------
     Image.Image
         Imagem do tabuleiro pronta para exibição.
+
+    Notes
+    -----
+    O cache compartilha a imagem entre chamadas. Trate o resultado como
+    somente leitura; se precisar modificá-lo, crie uma cópia. Pillow não
+    impõe essa restrição automaticamente.
     """
     """Reduz o original com Lanczos; guarda apenas dois tamanhos recentes."""
     _validar_largura(largura)

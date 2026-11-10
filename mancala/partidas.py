@@ -56,6 +56,12 @@ class Partida:
         -------
         ResultadoJogada
             Resultado completo da jogada, incluindo eventos e novo estado.
+
+        Notes
+        -----
+        Só adota o novo estado e incrementa jogadas se o motor aceitar a
+        escolha. A interface solicita o salvamento separadamente; este método
+        não grava arquivos nem aguarda a animação.
         """
         resultado = resolver_jogada(self.estado, casa)
         self.estado = resultado.estado
@@ -97,6 +103,12 @@ class ArquivoPartidas:
         -------
         None
             O arquivo é escrito no disco.
+
+        Notes
+        -----
+        Grava a sessão completa, sem histórico nem quadros da animação.
+        A versão do JSON é independente da versão do aplicativo. Falhas de
+        disco propagam OSError para a interface avisar o jogador.
         """
         self.pasta.mkdir(parents=True, exist_ok=True)
         dados = asdict(partida)
@@ -104,6 +116,8 @@ class ArquivoPartidas:
         destino = self.pasta / f'{partida.identificador}.json'
         temporario = destino.with_suffix('.tmp')
         temporario.write_text(json.dumps(dados, ensure_ascii=False, indent=2), encoding='utf-8')
+        # Substitui o destino após escrever tudo no mesmo diretório.
+        # Não coordena duas instâncias salvando a mesma partida simultaneamente.
         os.replace(temporario, destino)
 
     def carregar(self, caminho):
@@ -119,6 +133,12 @@ class ArquivoPartidas:
         -------
         Partida
             Objeto reconstruído a partir do arquivo.
+
+        Notes
+        -----
+        O caminho vem do chamador. A validação do identificador impede que
+        o conteúdo do JSON forme um caminho indevido no próximo salvamento.
+        Erros de leitura, formato e campos inválidos são propagados.
         """
         dados = json.loads(Path(caminho).read_text(encoding='utf-8'))
         if dados['versao'] != 1:
@@ -143,6 +163,12 @@ class ArquivoPartidas:
         -------
         tuple
             Tupla com registros ordenados por data e lista de erros de leitura.
+
+        Notes
+        -----
+        Cada registro contém (mtime, caminho, partida). A ordenação usa
+        a modificação do arquivo no sistema, não o campo atualizado_em do
+        JSON. Arquivos inválidos são preservados e informados na lista de erros.
         """
         registros = []
         erros = []

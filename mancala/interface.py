@@ -17,12 +17,13 @@ from .regras import CASAS, DEPOSITOS, casas_disponiveis
 from .tutorial import ETAPAS
 
 ESPERA_MINIMA_MAQUINA = 5.0
+# Escala o tempo entregue ao animador: 0,16 / 0,8 ≈ 0,20 s por semente.
 RITMO_NORMAL = 0.8
 
 
 class Aplicativo:
     """
-    Controla a janela principal, a navegação entre telas e a lógica do jogo.
+    Controla a janela principal, a navegação e a coordenação da partida.
 
     Parameters
     ----------
@@ -30,6 +31,13 @@ class Aplicativo:
         Instância principal da interface.
     pasta_partidas : str or Path, optional
         Diretório usado para salvar e carregar partidas.
+
+    Notes
+    -----
+    Coordena as regras implementadas em regras.py. partida.estado já
+    contém o resultado definitivo enquanto tabuleiro_exibido pode mostrar
+    um passo intermediário. Widgets são acessados somente pela thread
+    principal; a busca envia dados por uma fila.
     """
 
     def __init__(self, janela, pasta_partidas=None):
@@ -245,8 +253,15 @@ class Aplicativo:
         Returns
         -------
         None
-            Atualiza a geração de busca e limpa a fila de resultados.
+            Atualiza a geração de busca e invalida respostas antigas.
+
+        Notes
+        -----
+        O sinal de cancelamento pede a parada da busca. A geração também
+        invalida respostas que já estavam na fila; receber_jogada_maquina
+        as retira e descarta posteriormente. A thread não é encerrada à força.
         """
+        # Invalida também respostas que ficaram prontas antes do cancelamento.
         self.geracao += 1
         if self.cancelamento:
             self.cancelamento.set()
@@ -267,6 +282,7 @@ class Aplicativo:
         None
             Destrói os filhos do conteúdo e reseta os estados de tela.
         """
+        # Mesmo durante a animação, o estado definitivo já existe para salvar.
         if self.tela == 'partida' and nome != 'partida':
             self.salvar()
         self.interromper_calculo()
@@ -681,9 +697,16 @@ class Aplicativo:
         -------
         None
             Atualiza o estado visual e salva a partida quando necessário.
+
+        Notes
+        -----
+        Escolhas humanas e da máquina passam por este método. O resultado
+        completo é salvo antes da reprodução visual, exceto no tutorial.
+        Assim, sair durante a animação preserva a jogada já resolvida.
         """
         self.jogador_animacao = self.partida.estado.jogador_atual
         jogador = self.nome_jogador(self.jogador_animacao)
+        # Resolve toda a jogada agora; os quadros visuais serão exibidos depois.
         resultado = self.partida.jogar(casa)
         self.animador.iniciar(resultado.eventos)
         self.resumo_jogada = f'{jogador} distribuiu as sementes. '
@@ -721,6 +744,12 @@ class Aplicativo:
         -------
         None
             Inicia o cálculo assíncrono da estratégia.
+
+        Notes
+        -----
+        A busca recebe uma fotografia imutável e a geração da tela atual.
+        A espera mínima começa junto da busca, sem bloquear Menu ou Sair.
+        A thread de cálculo nunca manipula widgets Tk.
         """
         self.calculando = True
         self.liberar_jogada_maquina_em = time.monotonic() + ESPERA_MINIMA_MAQUINA
@@ -731,6 +760,7 @@ class Aplicativo:
         self.atualizar_controles()
 
         def calcular():
+            """Envia resposta ou erro pela fila; nunca chama widgets nesta thread."""
             try:
                 resposta = escolher_jogada(estado, dificuldade, cancelar)
                 self.respostas.put((geracao, resposta, None))
@@ -753,6 +783,13 @@ class Aplicativo:
         -------
         None
             Executa a jogada calculada ou informa falha no cálculo.
+
+        Notes
+        -----
+        agora usa time.monotonic(), o mesmo relógio do prazo mínimo.
+        A fila é consultada sem esperar; respostas de gerações antigas são
+        descartadas. Uma busca que exceda cinco segundos não ganha outra
+        pausa: sua resposta atual pode ser aplicada assim que estiver pronta.
         """
         if agora < self.liberar_jogada_maquina_em:
             return
@@ -778,8 +815,15 @@ class Aplicativo:
         -------
         None
             Reagenda a próxima chamada do timer da interface.
+
+        Notes
+        -----
+        Os ramos são exclusivos: reproduzir animação, receber resposta ou
+        iniciar busca. Isso impede uma nova escolha durante a distribuição.
+        O agendamento com after mantém o loop de eventos do Tk disponível.
         """
         agora = time.monotonic()
+        # Limita o salto após uma pausa da janela para não acelerar a animação.
         decorrido = min(agora - self.ultimo_quadro, 0.2)
         self.ultimo_quadro = agora
         if self.tela == 'partida':

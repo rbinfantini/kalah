@@ -18,6 +18,12 @@ class Recomendacao:
         Profundidade alcançada pela busca.
     posicoes_avaliadas : int
         Número de estados avaliados durante a busca.
+
+    Notes
+    -----
+    A profundidade conta escolhas, inclusive turnos extras, e informa
+    o último nível concluído. O contador de posições inclui os nós
+    visitados na tentativa que foi interrompida, não só posições únicas.
     """
     casa: int
     profundidade: int
@@ -44,6 +50,13 @@ def avaliar_posicao(estado, jogador):
     -------
     int
         Valor heurístico da posição.
+
+    Notes
+    -----
+    Valores maiores favorecem o jogador informado, cuja perspectiva
+    permanece fixa durante a busca. Vitórias e derrotas têm peso
+    dominante; no empate o valor é zero. Durante a partida, sementes
+    no depósito pesam mais que as reservas ainda nas casas.
     """
     pontos = estado.sementes[DEPOSITOS[jogador]] - estado.sementes[DEPOSITOS[1-jogador]]
     if estado.encerrada:
@@ -56,7 +69,7 @@ def avaliar_posicao(estado, jogador):
 def escolher_jogada(estado, dificuldade='Normal', cancelar=None, *, limite_segundos=None,
                     profundidade_maxima=None):
     """
-    Seleciona a melhor jogada possível seguindo a dificuldade informada.
+    Seleciona uma jogada conforme a dificuldade e os limites da busca.
 
     Parameters
     ----------
@@ -75,6 +88,14 @@ def escolher_jogada(estado, dificuldade='Normal', cancelar=None, *, limite_segun
     -------
     Recomendacao
         Casa escolhida e metadados da busca.
+
+    Notes
+    -----
+    Fácil apenas sorteia uma casa válida. Normal e Difícil respeitam
+    os limites de tempo e profundidade; não há garantia de jogo perfeito.
+    Prazo esgotado ou cancelamento mantém a última profundidade completa,
+    ou a primeira opção válida se nenhuma terminou. A pausa visual de
+    cinco segundos é responsabilidade da interface e ocorre junto da busca.
     """
     opcoes = casas_disponiveis(estado)
     if not opcoes:
@@ -91,10 +112,12 @@ def escolher_jogada(estado, dificuldade='Normal', cancelar=None, *, limite_segun
     nos = 0
 
     def verificar_tempo():
+        """Interrompe a busca recursiva quando o prazo ou o cancelamento exigir."""
         if (cancelar is not None and cancelar.is_set()) or time.monotonic() >= prazo:
             raise BuscaInterrompida
 
     def sucessores(posicao):
+        """Simula opções legais e prioriza turnos extras e capturas para a poda."""
         resultados = [(p, resolver_jogada(posicao, p, registrar_eventos=False))
                       for p in casas_disponiveis(posicao)]
         # Capturas e turnos extras primeiro aumentam a eficiência da poda.
@@ -102,6 +125,7 @@ def escolher_jogada(estado, dificuldade='Normal', cancelar=None, *, limite_segun
         return [(p, resultado.estado) for p, resultado in resultados]
 
     def buscar(posicao, restante, alfa, beta):
+        """Avalia continuações com limites alfa/beta para dispensar ramos inúteis."""
         nonlocal nos
         verificar_tempo()
         nos += 1
@@ -109,6 +133,8 @@ def escolher_jogada(estado, dificuldade='Normal', cancelar=None, *, limite_segun
             return avaliar_posicao(posicao, jogador)
         chave = (posicao, restante)
         alfa_original, beta_original = alfa, beta
+        # Um corte pode fornecer só um limite inferior/superior, não um valor
+        # exato. O tipo do resultado determina como reutilizá-lo com segurança.
         if chave in cache:
             valor, limite = cache[chave]
             if limite == 'exato':
@@ -119,6 +145,7 @@ def escolher_jogada(estado, dificuldade='Normal', cancelar=None, *, limite_segun
                 beta = min(beta, valor)
             if alfa >= beta:
                 return valor
+        # Turnos extras mantêm o jogador: não basta alternar a cada nível.
         maximizar = posicao.jogador_atual == jogador
         melhor = -float('inf') if maximizar else float('inf')
         for _, seguinte in sucessores(posicao):
@@ -146,6 +173,7 @@ def escolher_jogada(estado, dificuldade='Normal', cancelar=None, *, limite_segun
                 valor = buscar(seguinte, nivel - 1, pontuacao, float('inf'))
                 if valor > pontuacao:
                     candidata, pontuacao = casa, valor
+            # Só troca a recomendação depois de comparar todas as opções do nível.
             melhor_casa, concluida = candidata, nivel
         except BuscaInterrompida:
             break

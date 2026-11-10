@@ -76,6 +76,12 @@ class AnimadorJogada:
         -------
         object or None
             O próximo evento processado ou None quando ainda não chegou o momento.
+
+        Notes
+        -----
+        Recebe tempo decorrido, já ajustado pela velocidade da interface.
+        Retorna no máximo um evento por chamada; o primeiro pode sair de
+        imediato. Após o fim retorna None. Não altera a partida nem salva dados.
         """
         self.espera -= segundos
         if not self.ativo or self.espera > 0:

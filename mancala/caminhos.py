@@ -11,7 +11,13 @@ def pasta_dados():
     Returns
     -------
     Path
-        Diretório usado para saves, logs e arquivos de configuração.
+        Diretório usado para partidas salvas e logs.
+
+    Notes
+    -----
+    Apenas retorna o caminho, sem criar diretórios. No EXE, os dados
+    ficam na área local do usuário, fora da extração temporária das
+    bibliotecas do PyInstaller.
     """
     if getattr(sys, 'frozen', False):
         base = os.environ.get('LOCALAPPDATA')

@@ -43,6 +43,12 @@ def preparar_cenario(casas, deposito_a):
     -------
     EstadoPartida
         Estado do tabuleiro pronto para a etapa de tutorial.
+
+    Notes
+    -----
+    O depósito B recebe o restante para conservar 48 sementes. Este
+    construtor atende aos exercícios definidos no módulo; os testes
+    validam os cenários. Não é usado para carregar partidas externas.
     """
     sementes = [0] * 14
     for posicao, quantidade in casas.items():

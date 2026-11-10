@@ -94,6 +94,12 @@ class Tabuleiro(tk.Canvas):
         -------
         None
             Redesenha o tabuleiro com o novo estado.
+
+        Notes
+        -----
+        sementes pode ser um quadro intermediário da animação. O chamador
+        fornece as casas disponíveis; este Canvas não decide turnos, capturas
+        ou o fim da partida.
         """
         self.sementes = sementes
         self.disponiveis = tuple(disponiveis)
@@ -257,6 +263,12 @@ class Tabuleiro(tk.Canvas):
         -------
         ImageTk.PhotoImage
             Imagem mantida em cache para o canvas.
+
+        Notes
+        -----
+        O Canvas precisa manter referências Python às PhotoImages enquanto
+        as exibe. Este cache local é diferente do cache Pillow compartilhado
+        por graficos.py; é liberado ao mudar de tamanho ou destruir a tela.
         """
         chave = (tipo, tamanho, cor)
         if chave not in self.imagens:
@@ -321,6 +333,8 @@ class Tabuleiro(tk.Canvas):
             raio = min(14, 43 / math.sqrt(max(1, quantidade)))
             tamanho_semente = max(6, min(30, round(raio*2*escala/2)*2))
             for indice in range(quantidade):
+                # Ângulo áureo e raio pela raiz distribuem sementes sem sorteios
+                # que mudariam suas posições a cada redesenho.
                 angulo = indice * 2.399963
                 distancia = math.sqrt((indice+.5)/max(quantidade,1))
                 x = cx + math.cos(angulo)*distancia*((x2-x1)/2-raio-13)
