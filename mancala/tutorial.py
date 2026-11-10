@@ -5,6 +5,22 @@ from .regras import EstadoPartida, estado_inicial
 
 @dataclass(frozen=True)
 class Etapa:
+    """
+    Descreve uma etapa do tutorial de regras do jogo.
+
+    Parameters
+    ----------
+    titulo : str
+        Título da etapa.
+    instrucao : str
+        Mensagem apresentada ao jogador.
+    estado : EstadoPartida
+        Estado do tabuleiro para a etapa.
+    casa : int
+        Casa que o jogador deve selecionar.
+    conclusao : str
+        Mensagem final após completar a etapa.
+    """
     titulo: str
     instrucao: str
     estado: EstadoPartida
@@ -13,6 +29,21 @@ class Etapa:
 
 
 def preparar_cenario(casas, deposito_a):
+    """
+    Monta um cenário de tutorial com sementes e depósito específicos.
+
+    Parameters
+    ----------
+    casas : dict
+        Mapa de posições para quantidades de sementes.
+    deposito_a : int
+        Total de sementes no depósito do jogador A.
+
+    Returns
+    -------
+    EstadoPartida
+        Estado do tabuleiro pronto para a etapa de tutorial.
+    """
     sementes = [0] * 14
     for posicao, quantidade in casas.items():
         sementes[posicao] = quantidade

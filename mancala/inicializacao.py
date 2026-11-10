@@ -6,6 +6,14 @@ from .caminhos import pasta_dados
 
 
 def main():
+    """
+    Ponto de entrada para execução via CLI, atalho ou executável.
+
+    Returns
+    -------
+    None
+        A aplicação inicia diretamente ou executa uma ação de diagnóstico.
+    """
     argumentos = argparse.ArgumentParser(description='Mancala Só Joga')
     argumentos.add_argument('--verificar-instalacao', metavar='RELATORIO',
                             help='verifica o pacote e grava um relatório JSON')
@@ -28,6 +36,14 @@ def main():
 
 
 def iniciar():
+    """
+    Tenta iniciar a aplicação e registra falhas em log quando não é possível abrir.
+
+    Returns
+    -------
+    None
+        Caso o arranque falhe, finaliza com mensagem diagnóstica.
+    """
     try:
         main()
     except Exception:

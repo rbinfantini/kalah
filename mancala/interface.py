@@ -21,7 +21,33 @@ RITMO_NORMAL = 0.8
 
 
 class Aplicativo:
+    """
+    Controla a janela principal, a navegação entre telas e a lógica do jogo.
+
+    Parameters
+    ----------
+    janela : tk.Tk
+        Instância principal da interface.
+    pasta_partidas : str or Path, optional
+        Diretório usado para salvar e carregar partidas.
+    """
+
     def __init__(self, janela, pasta_partidas=None):
+        """
+        Inicializa a aplicação e monta a interface padrão do jogo.
+
+        Parameters
+        ----------
+        janela : tk.Tk
+            Janela principal da aplicação.
+        pasta_partidas : str or Path, optional
+            Caminho do diretório de salvamento; usa o padrão quando não informado.
+
+        Returns
+        -------
+        None
+            Cria o estado inicial da interface e a tela de menu.
+        """
         self.janela = janela
         janela.title('Mancala Só Joga')
         largura = min(1200, janela.winfo_screenwidth() - 70)
@@ -75,12 +101,35 @@ class Aplicativo:
         self.temporizador = janela.after(40, self.atualizar)
 
     def voltar(self):
+        """
+        Retorna para a tela anterior em fluxo de navegação.
+
+        Returns
+        -------
+        None
+            Alterna entre telas do menu, dificuldade e partida.
+        """
         if self.tela == 'dificuldade':
             self.escolher_modo()
         elif self.tela != 'menu':
             self.menu()
 
     def atalho_casa(self, evento, coluna):
+        """
+        Seleciona uma casa pela tecla numérica do teclado.
+
+        Parameters
+        ----------
+        evento : tk.Event
+            Evento do teclado.
+        coluna : int
+            Índice da casa selecionada pela tecla.
+
+        Returns
+        -------
+        str or None
+            'break' para impedir o comportamento padrão ou None quando ignorado.
+        """
         if self.tela != 'partida' or self.janela.grab_current() is not None:
             return
         if isinstance(evento.widget, (tk.Entry, ttk.Entry, ttk.Combobox)):
@@ -89,11 +138,51 @@ class Aplicativo:
         return 'break'
 
     def cabecalho(self, categoria, titulo, descricao):
+        """
+        Cria o cabeçalho padrão de uma tela de menu ou configuração.
+
+        Parameters
+        ----------
+        categoria : str
+            Nome da categoria da tela.
+        titulo : str
+            Título principal exibido.
+        descricao : str
+            Texto auxiliar do bloco.
+
+        Returns
+        -------
+        None
+            Monta os elementos visuais do cabeçalho.
+        """
         rotulo(self.conteudo, categoria.upper(), 10, cor=VERDE, negrito=True).pack(anchor='w')
         rotulo(self.conteudo, titulo, 29, editorial=True).pack(anchor='w', pady=(8, 8))
         rotulo(self.conteudo, descricao, 11, cor=SUAVE).pack(anchor='w', pady=(0, 22))
 
     def cartao_opcao(self, pai, numero, titulo, descricao, acao, principal=False):
+        """
+        Cria um cartão de escolha para telas de menu ou modos de jogo.
+
+        Parameters
+        ----------
+        pai : tk.Misc
+            Container do cartão.
+        numero : str
+            Identificador exibido no topo do cartão.
+        titulo : str
+            Nome da opção.
+        descricao : str
+            Texto explicativo da alternativa.
+        acao : callable
+            Callback executado ao escolher a opção.
+        principal : bool, optional
+            Indica se a opção deve receber destaque principal.
+
+        Returns
+        -------
+        tk.Frame
+            Cartão montado e pronto para uso.
+        """
         cartao = painel(pai, padx=24, pady=24)
         rotulo(cartao, numero, 11, cor=VERDE, negrito=True).pack(anchor='w')
         rotulo(cartao, titulo, 22, editorial=True).pack(anchor='w', pady=(18, 12))
@@ -104,14 +193,60 @@ class Aplicativo:
         return cartao
 
     def botao(self, pai, texto, acao, principal=False, estilo=None):
+        """
+        Encapsula a criação padrão de botões da interface.
+
+        Parameters
+        ----------
+        pai : tk.Misc
+            Contêiner do botão.
+        texto : str
+            Texto exibido.
+        acao : callable
+            Função chamada ao clicar.
+        principal : bool, optional
+            Destaca o botão como principal.
+        estilo : str, optional
+            Estilo ttk opcional.
+
+        Returns
+        -------
+        ttk.Button
+            Botão configurado com a aparência do projeto.
+        """
         return botao(pai, texto, acao, principal, estilo)
 
     def texto(self, texto, tamanho=14, cor=TEXTO):
+        """
+        Adiciona um bloco de texto padrão à tela atual.
+
+        Parameters
+        ----------
+        texto : str
+            Conteúdo textual.
+        tamanho : int, optional
+            Tamanho da fonte.
+        cor : str, optional
+            Cor do texto.
+
+        Returns
+        -------
+        tk.Label
+            Controle de texto criado na área de conteúdo.
+        """
         controle = rotulo(self.conteudo, texto, tamanho, cor, wraplength=850)
         controle.pack(anchor='w', pady=(0, 14))
         return controle
 
     def interromper_calculo(self):
+        """
+        Cancela o cálculo da jogada do computador em andamento.
+
+        Returns
+        -------
+        None
+            Atualiza a geração de busca e limpa a fila de resultados.
+        """
         self.geracao += 1
         if self.cancelamento:
             self.cancelamento.set()
@@ -119,7 +254,19 @@ class Aplicativo:
         self.liberar_jogada_maquina_em = 0.0
 
     def limpar_tela(self, nome):
-        # O estado final já existe durante a animação e precisa ser preservado.
+        """
+        Remove os widgets da tela atual e prepara a próxima exibição.
+
+        Parameters
+        ----------
+        nome : str
+            Nome da nova tela ativa.
+
+        Returns
+        -------
+        None
+            Destrói os filhos do conteúdo e reseta os estados de tela.
+        """
         if self.tela == 'partida' and nome != 'partida':
             self.salvar()
         self.interromper_calculo()
@@ -131,6 +278,14 @@ class Aplicativo:
             filho.destroy()
 
     def menu(self):
+        """
+        Monta a tela inicial principal com opções de jogo, carregamento e tutorial.
+
+        Returns
+        -------
+        None
+            Exibe a página do menu principal.
+        """
         self.limpar_tela('menu')
         self.partida = None
         self.etapa = None
@@ -170,6 +325,14 @@ class Aplicativo:
         jogar.focus_set()
 
     def escolher_modo(self):
+        """
+        Exibe a tela de escolha do modo de partida.
+
+        Returns
+        -------
+        None
+            Mostra as opções de jogador × jogador e jogador × máquina.
+        """
         self.limpar_tela('modo')
         self.cabecalho('01 / Nova partida', 'Quem senta do outro lado?',
                       'Escolha seu adversário. As regras são as mesmas para os dois lados.')
@@ -187,6 +350,14 @@ class Aplicativo:
         self.status.set('Uma nova partida começa com quatro sementes em cada casa.')
 
     def escolher_dificuldade(self):
+        """
+        Exibe os níveis de dificuldade do computador.
+
+        Returns
+        -------
+        None
+            Monta as opções de dificuldade antes de iniciar a partida.
+        """
         self.limpar_tela('dificuldade')
         self.cabecalho('02 / Contra a máquina', 'Encontre seu desafio.',
                       'Você começa na fileira de baixo.')
@@ -205,6 +376,14 @@ class Aplicativo:
         self.status.set('Todos os níveis funcionam offline.')
 
     def listar_partidas(self):
+        """
+        Mostra a lista de partidas salvas para reabrir ou continuar.
+
+        Returns
+        -------
+        None
+            Exibe as partidas disponíveis em tela.
+        """
         self.limpar_tela('carregar')
         self.cabecalho('Sua coleção', 'Volte à próxima jogada.',
                       'Salvamento automático a cada escolha. Suas partidas mais recentes aparecem primeiro.')
@@ -274,11 +453,39 @@ class Aplicativo:
         self.status.set('Partidas guardadas neste computador.')
 
     def iniciar_tutorial(self, indice):
+        """
+        Inicia uma etapa específica do tutorial.
+
+        Parameters
+        ----------
+        indice : int
+            Índice da etapa no conjunto de exercícios.
+
+        Returns
+        -------
+        None
+            Carrega a partida de tutorial correspondente.
+        """
         self.etapa = indice
         self.etapa_concluida = False
         self.iniciar(Partida(estado=ETAPAS[indice].estado), tutorial=True)
 
     def iniciar(self, partida, tutorial=False):
+        """
+        Inicia uma partida em tela e prepara o tabuleiro e os controles.
+
+        Parameters
+        ----------
+        partida : Partida
+            Partida a ser exibida.
+        tutorial : bool, optional
+            Indica se a partida é um tutorial guiado.
+
+        Returns
+        -------
+        None
+            Exibe o tabuleiro e configura o estado de interação.
+        """
         self.limpar_tela('partida')
         if not tutorial:
             self.etapa = None
@@ -341,6 +548,14 @@ class Aplicativo:
         self.tabuleiro.focus_set()
 
     def proxima_etapa(self):
+        """
+        Avança para a próxima etapa do tutorial quando a atual foi concluída.
+
+        Returns
+        -------
+        None
+            Carrega a próxima etapa ou retorna ao menu ao fim.
+        """
         if self.etapa_concluida:
             if self.etapa + 1 < len(ETAPAS):
                 self.iniciar_tutorial(self.etapa + 1)
@@ -348,23 +563,65 @@ class Aplicativo:
                 self.menu()
 
     def nome_jogador(self, jogador):
+        """
+        Retorna o nome exibido do jogador associado ao índice.
+
+        Parameters
+        ----------
+        jogador : int
+            Índice do jogador, 0 ou 1.
+
+        Returns
+        -------
+        str
+            Nome amigável usado na interface.
+        """
         if self.partida.modo == 'maquina':
             return 'Você' if jogador == 0 else 'Computador'
         return 'Jogador 1' if jogador == 0 else 'Jogador 2'
 
     def pode_jogar(self):
+        """
+        Verifica se a interface está liberada para receber uma jogada humana.
+
+        Returns
+        -------
+        bool
+            True quando é possível escolher uma casa no atual estado da partida.
+        """
         return (self.tela == 'partida' and self.partida is not None
                 and not self.animador.ativo and not self.calculando and not self.partida.estado.encerrada
                 and not (self.partida.modo == 'maquina' and self.partida.estado.jogador_atual == 1)
                 and not (self.etapa is not None and self.etapa_concluida))
 
     def casas_jogaveis(self):
+        """
+        Retorna as casas válidas para a jogada atual, respeitando o tutorial.
+
+        Returns
+        -------
+        tuple[int, ...]
+            Casas jogáveis permitidas pela interface.
+        """
         if not self.pode_jogar():
             return ()
         casas = casas_disponiveis(self.partida.estado)
         return tuple(casa for casa in casas if self.etapa is None or casa == ETAPAS[self.etapa].casa)
 
     def escolher_coluna(self, coluna):
+        """
+        Seleciona uma casa usando a coluna da interface numérica.
+
+        Parameters
+        ----------
+        coluna : int
+            Índice da coluna escolhida.
+
+        Returns
+        -------
+        None
+            Chama a jogada correspondente quando o turno permite.
+        """
         if not self.pode_jogar():
             return
         jogador = self.partida.estado.jogador_atual
@@ -372,9 +629,35 @@ class Aplicativo:
         self.selecionar_casa(casas[coluna])
 
     def clicar_tabuleiro(self, evento):
+        """
+        Encaminha o clique do mouse para o canvas do tabuleiro.
+
+        Parameters
+        ----------
+        evento : tk.Event
+            Evento de clique recebido pela interface.
+
+        Returns
+        -------
+        None
+            Delegua a seleção ao componente gráfico.
+        """
         self.tabuleiro.clicar(evento)
 
     def selecionar_casa(self, casa):
+        """
+        Tenta executar a jogada escolhida na casa informada.
+
+        Parameters
+        ----------
+        casa : int
+            Casa selecionada pelo jogador.
+
+        Returns
+        -------
+        None
+            Executa a jogada ou atualiza a mensagem de erro.
+        """
         if not self.pode_jogar():
             return
         if self.etapa is not None and casa != ETAPAS[self.etapa].casa:
@@ -386,6 +669,19 @@ class Aplicativo:
             self.mensagem.set(str(erro))
 
     def executar_jogada(self, casa):
+        """
+        Executa a jogada e inicia a animação do resultado.
+
+        Parameters
+        ----------
+        casa : int
+            Casa escolhida para a jogada.
+
+        Returns
+        -------
+        None
+            Atualiza o estado visual e salva a partida quando necessário.
+        """
         self.jogador_animacao = self.partida.estado.jogador_atual
         jogador = self.nome_jogador(self.jogador_animacao)
         resultado = self.partida.jogar(casa)
@@ -399,6 +695,14 @@ class Aplicativo:
         self.atualizar_controles()
 
     def salvar(self):
+        """
+        Salva a partida atual em disco quando a sessão permite.
+
+        Returns
+        -------
+        None
+            Atualiza o status e marca erro de gravação quando necessário.
+        """
         if not self.partida or self.etapa is not None:
             return
         try:
@@ -410,6 +714,14 @@ class Aplicativo:
             self.status.set(f'Não foi possível salvar: {erro}')
 
     def iniciar_calculo(self):
+        """
+        Dispara a busca da jogada do computador em thread separada.
+
+        Returns
+        -------
+        None
+            Inicia o cálculo assíncrono da estratégia.
+        """
         self.calculando = True
         self.liberar_jogada_maquina_em = time.monotonic() + ESPERA_MINIMA_MAQUINA
         self.cancelamento = threading.Event()
@@ -429,7 +741,19 @@ class Aplicativo:
         threading.Thread(target=calcular, daemon=True, name='estrategia-mancala').start()
 
     def receber_jogada_maquina(self, agora):
-        """A busca e a pausa acontecem juntas, sem bloquear a interface."""
+        """
+        Processa a resposta da busca do computador quando ela ficou pronta.
+
+        Parameters
+        ----------
+        agora : float
+            Timestamp atual do relógio da aplicação.
+
+        Returns
+        -------
+        None
+            Executa a jogada calculada ou informa falha no cálculo.
+        """
         if agora < self.liberar_jogada_maquina_em:
             return
         try:
@@ -447,6 +771,14 @@ class Aplicativo:
             pass
 
     def atualizar(self):
+        """
+        Atualiza a tela, a animação e a busca da máquina em uma iteração do loop.
+
+        Returns
+        -------
+        None
+            Reagenda a próxima chamada do timer da interface.
+        """
         agora = time.monotonic()
         decorrido = min(agora - self.ultimo_quadro, 0.2)
         self.ultimo_quadro = agora
@@ -484,6 +816,14 @@ class Aplicativo:
         self.temporizador = self.janela.after(40, self.atualizar)
 
     def atualizar_controles(self):
+        """
+        Recalcula textos, destaques e pontuação exibida no tabuleiro.
+
+        Returns
+        -------
+        None
+            Atualiza os widgets visuais da partida ativa.
+        """
         estado = self.partida.estado
         fim = estado.encerrada and not self.animador.ativo
         if self.etapa is not None:
@@ -518,10 +858,26 @@ class Aplicativo:
         self.desenhar_tabuleiro()
 
     def desenhar_tabuleiro(self):
+        """
+        Redesenha o tabuleiro atual com casas jogáveis e destaques.
+
+        Returns
+        -------
+        None
+            Atualiza o componente Tabuleiro com o estado recente.
+        """
         if self.tela == 'partida':
             self.tabuleiro.atualizar(self.tabuleiro_exibido, self.casas_jogaveis(), self.destaque)
 
     def sair(self):
+        """
+        Finaliza a aplicação com confirmação de salvamento, quando necessário.
+
+        Returns
+        -------
+        None
+            Fecha a janela ou mantém a aplicação aberta em caso de falha de gravação.
+        """
         self.salvar()
         if self.erro_salvamento and not messagebox.askyesno(
                 'Sair sem salvar?', 'O salvamento falhou. Deseja sair mesmo assim?', parent=self.janela):

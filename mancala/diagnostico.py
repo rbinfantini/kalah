@@ -7,6 +7,19 @@ import sys
 
 
 def medir_abertura(caminho_relatorio):
+    """
+    Mede o tempo até o primeiro menu do pacote ficar completamente desenhado.
+
+    Parameters
+    ----------
+    caminho_relatorio : str or Path
+        Local onde o JSON com o instante de pronto será gravado.
+
+    Returns
+    -------
+    None
+        O relatório é salvo em disco.
+    """
     """Registra o instante do primeiro menu desenhado; o cronômetro é externo.
 
     Usa uma janela mapeada fora da tela e partidas temporárias. O mesmo modo
@@ -51,6 +64,19 @@ def medir_abertura(caminho_relatorio):
 
 
 def verificar_instalacao(caminho_relatorio):
+    """
+    Executa uma checagem real do pacote, da interface e da lógica do jogo.
+
+    Parameters
+    ----------
+    caminho_relatorio : str or Path
+        Caminho do arquivo JSON que receberá os resultados da verificação.
+
+    Returns
+    -------
+    None
+        Grava o relatório detalhado em disco.
+    """
     relatorio = {'sucesso': False, 'empacotado': bool(getattr(sys, 'frozen', False)),
                  'executavel': Path(sys.executable).name, 'verificacoes': []}
     janela = None
