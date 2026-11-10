@@ -118,41 +118,6 @@ git diff --cached
 
 Confira também o conteúdo dos arquivos novos, que não aparecem em `git diff` antes de serem adicionados. Selecione explicitamente os arquivos desejados para o commit. Não use `git add -f` para incluir arquivos ignorados.
 
-## Gerar um ZIP limpo
-
-O pacote de código deve conter os arquivos versionados da revisão escolhida:
-código, testes, documentação, metadados e configuração de construção. O ambiente
-Python instalado e os resultados de compilação permanecem locais.
-
-No GitHub, selecione a branch e use **Code → Download ZIP**. Para reproduzir isso
-em um clone local, confira primeiro a branch, as mudanças e a lista versionada:
-
-```powershell
-git branch --show-current
-git status --short
-git ls-files
-```
-
-Revise e faça commit apenas das alterações desejadas. Depois execute:
-
-```powershell
-git archive --format=zip --prefix=kalah/ --output=../kalah-codigo.zip HEAD
-```
-
-`HEAD` representa o último commit da branch atual. O comando não inclui mudanças
-não commitadas nem arquivos locais não versionados. Ele também não remove arquivos
-indevidos que já estejam versionados: por isso a conferência de `git ls-files` é
-necessária. O `.gitignore` não retira arquivos já rastreados e não controla o ZIP
-feito pelo Explorador do Windows.
-
-Abra o ZIP e confira se contém somente o projeto. Não deve incluir ambientes
-virtuais, `build/`, `dist/`, `__pycache__/`, partidas, logs, executáveis, ZIPs
-anteriores ou os PNGs antigos substituídos por Pillow. Não é necessário apagar
-o ambiente de desenvolvimento para gerar um pacote limpo.
-
-Para distribuir o jogo pronto, use o EXE ou ZIP da Release. Esse pacote inclui
-Python e bibliotecas necessários para jogar e tem tamanho maior que o código.
-
 ## Incorporar documentação de outra pessoa
 
 Parta da `main` atual e leia as docstrings já integradas. Preserve explicações
