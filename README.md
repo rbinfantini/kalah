@@ -2,6 +2,16 @@
 
 Jogo em Python com interface escura, tabuleiro proporcional e nomes em português. As regras são separadas da interface. Os gráficos são gerados por código com Pillow; o jogo funciona offline.
 
+## Guia da documentação
+
+- Este README: instalação, regras, comandos e distribuição.
+- [Arquitetura e fluxo do jogo](docs/arquitetura.md): caminho de uma jogada, responsabilidades, contratos e formato das partidas.
+- [Contribuição e comentários](docs/contribuicao.md): como modificar com cuidado, onde documentar e como verificar as alterações.
+- [Interface e gráficos](docs/interface.md): controles, desenho e cache de imagens.
+- [Comparação local](docs/comparacao-local.md): registro da medição de tamanho e abertura na migração para Pillow.
+
+Para conhecer o código, comece pelo fluxo de uma jogada no guia de arquitetura e siga as funções indicadas. Os comentários explicam contratos e decisões locais; os guias conectam essas partes.
+
 ## Jogar sem instalar Python
 
 Abra [Releases](https://github.com/rbinfantini/kalah/releases/latest), baixe **MancalaSoJoga.exe** e abra com dois cliques. O arquivo inclui Python, Tcl/Tk e as bibliotecas necessárias. Não é preciso instalar Python, Git ou executar comandos. O jogo funciona offline e abre sem terminal.
@@ -178,3 +188,24 @@ Ambos os EXEs devem aceitar `--medir-abertura`. O script abre processos novos, a
 ```
 
 Compare pacotes construídos com as mesmas versões de Python e PyInstaller. Os números dependem do computador, do antivírus e do cache do sistema; não representam abertura após reiniciar o Windows. O relatório fica fora do Git.
+
+## Compartilhar somente o código
+
+No GitHub, selecione a branch desejada e use **Code → Download ZIP**. O pacote
+contém os arquivos versionados daquela branch. Para jogar sem instalar Python,
+use o EXE da Release, conforme a seção de instalação acima.
+
+Em um clone Git local, depois de revisar e fazer commit das alterações desejadas:
+
+```powershell
+git archive --format=zip --prefix=kalah/ --output=../kalah-codigo.zip HEAD
+```
+
+Esse comando inclui somente o último commit da branch atual. Alterações locais
+ainda não commitadas não entram no arquivo. O ZIP fica fora da pasta do projeto.
+Confira a branch e os arquivos versionados antes de gerar: veja o
+[guia de contribuição](docs/contribuicao.md#gerar-um-zip-limpo).
+
+O `.gitignore` não filtra a compactação pelo Explorador do Windows. Compactar
+toda a pasta de desenvolvimento pode incluir `.venv/`, `build/`, `dist/`, caches,
+partidas pessoais e recursos antigos que já não fazem parte do Git.
