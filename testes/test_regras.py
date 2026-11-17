@@ -94,6 +94,31 @@ class TestRegras(unittest.TestCase):
             sugestao = escolher_jogada(estado_inicial(), nivel, limite_segundos=0)
             self.assertIn(sugestao.casa, casas_disponiveis(estado_inicial()))
 
+    def test_nome_em_partida_antiga_e_renomeacao_por_identidade(self):
+        with tempfile.TemporaryDirectory() as pasta:
+            arquivo = ArquivoPartidas(pasta)
+            partida = Partida()
+            partida.jogar(2)
+            arquivo.salvar(partida)
+            caminho = Path(pasta) / f'{partida.identificador}.json'
+            dados = json.loads(caminho.read_text(encoding='utf-8'))
+            del dados['nome']
+            caminho.write_text(json.dumps(dados), encoding='utf-8')
+            antiga = arquivo.carregar(caminho)
+            self.assertEqual(antiga.nome, '')
+            arquivo.renomear(antiga, '  Jogo com Pedro  ', caminho)
+            outra = Partida(nome='Jogo com Pedro')
+            arquivo.salvar(outra)
+            arquivo.renomear(antiga, 'Revanche / sábado')
+            self.assertEqual(arquivo.carregar(caminho).estado, partida.estado)
+            registros, erros = arquivo.listar()
+            self.assertEqual(erros, [])
+            self.assertEqual({p.identificador: p.nome for _, _, p in registros},
+                             {partida.identificador: 'Revanche / sábado', outra.identificador: 'Jogo com Pedro'})
+            with self.assertRaises(ValueError):
+                arquivo.renomear(antiga, '   ')
+            self.assertEqual(arquivo.carregar(caminho), antiga)
+
     def test_persistencia_e_arquivos_invalidos(self):
         with tempfile.TemporaryDirectory() as pasta:
             arquivo = ArquivoPartidas(pasta)
