@@ -65,6 +65,14 @@ A lista mostra todas as partidas válidas, da mais recente à mais antiga, inclu
 
 Sair durante uma animação preserva o resultado completo da jogada. Carregar mostra esse resultado, sem repetir a distribuição. A gravação usa substituição atômica; falhas aparecem no rodapé.
 
+### Dar nome a uma partida ou editar o nome
+
+Durante o jogo, clique em **Nome da partida**, digite um nome, como “Jogo com Pedro”, e confirme. O nome aparece no título da janela e na lista de partidas salvas.
+
+Para mudar o nome depois, abra **Carregar jogo** no menu, selecione a partida e clique em **Editar nome**. Digite o novo nome e confirme. Você pode fazer isso também em partidas concluídas. O placar e as jogadas são preservados.
+
+Partidas salvas antes desta atualização aparecem como **Sem nome** porque as versões anteriores guardavam o progresso, mas ainda não tinham um campo para o nome. Você pode retomá-las normalmente ou usar **Editar nome** para identificá-las na lista.
+
 ## Computador
 
 - Fácil: escolha aleatória válida.
