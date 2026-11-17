@@ -5,7 +5,7 @@ import queue
 import threading
 import time
 import tkinter as tk
-from tkinter import messagebox, ttk
+from tkinter import messagebox, simpledialog, ttk
 from .aparencia import (FUNDO, PAPEL, TEXTO, SUAVE, LINHA, VERDE,
                         AMBAR, AZUL, ESCURO, configurar_tema, rotulo, botao, painel)
 from .tabuleiro import Tabuleiro
@@ -272,6 +272,7 @@ class Aplicativo:
         self.interromper_calculo()
         self.animador = AnimadorJogada()
         self.tela = nome
+        self.janela.title('Mancala Só Joga')
         self.botao_voltar.configure(state='disabled' if nome == 'menu' else 'normal')
         self.botao_menu.configure(state='disabled' if nome == 'menu' else 'normal')
         for filho in self.conteudo.winfo_children():
@@ -405,13 +406,13 @@ class Aplicativo:
             rotulo(ferramentas, 'Mostrar  ', 10, cor=SUAVE).pack(side='right')
             quadro = painel(self.conteudo)
             quadro.pack(fill='both', expand=True)
-            lista = ttk.Treeview(quadro, columns=('data', 'modo', 'placar', 'jogadas', 'estado'),
+            lista = ttk.Treeview(quadro, columns=('nome', 'data', 'modo', 'placar', 'jogadas', 'estado'),
                                  show='headings', selectmode='browse', height=3)
-            for coluna, titulo, largura in [('data', 'ÚLTIMA VEZ', 175), ('modo', 'PARTIDA', 220),
-                                            ('placar', 'PLACAR', 85), ('jogadas', 'JOGADAS', 90),
-                                            ('estado', 'SITUAÇÃO', 150)]:
+            for coluna, titulo, largura in [('nome', 'NOME', 215), ('data', 'ÚLTIMA VEZ', 150),
+                                            ('modo', 'MODO', 150), ('placar', 'PLACAR', 75),
+                                            ('jogadas', 'JOGADAS', 80), ('estado', 'SITUAÇÃO', 120)]:
                 lista.heading(coluna, text=titulo)
-                lista.column(coluna, width=largura, minwidth=70, anchor='w' if coluna in ('data','modo','estado') else 'center')
+                lista.column(coluna, width=largura, minwidth=70, anchor='w' if coluna in ('nome','data','modo','estado') else 'center')
             barra = ttk.Scrollbar(quadro, command=lista.yview)
             lista.configure(yscrollcommand=barra.set)
             barra.pack(side='right', fill='y')
@@ -425,6 +426,23 @@ class Aplicativo:
                     self.iniciar(registros[int(selecionados[0])][2])
             abrir_botao = self.botao(rodape, 'Abrir partida  →', abrir, True)
             abrir_botao.pack(side='right')
+            def renomear_selecionada():
+                nonlocal registros
+                selecionados = lista.selection()
+                if not selecionados:
+                    return
+                _, caminho, partida = registros[int(selecionados[0])]
+                if self.editar_nome_partida(partida, caminho):
+                    registros, _ = self.arquivos.listar()
+                    preencher()
+                    for item in lista.get_children():
+                        if registros[int(item)][1] == caminho:
+                            lista.selection_set(item)
+                            lista.focus(item)
+                            lista.see(item)
+                            break
+            renomear_botao = self.botao(rodape, 'Editar nome', renomear_selecionada)
+            renomear_botao.pack(side='right', padx=8)
             def preencher(_=None):
                 for item in lista.get_children():
                     lista.delete(item)
@@ -434,11 +452,13 @@ class Aplicativo:
                         continue
                     a, b = partida.estado.placar
                     lista.insert('', 'end', iid=str(indice), values=(
+                        partida.nome or 'Sem nome',
                         datetime.fromtimestamp(instante).strftime('%d/%m/%Y  %H:%M'),
                         'Dois jogadores' if partida.modo == 'dupla' else f'Máquina · {partida.dificuldade}',
                         f'{a} × {b}', partida.jogadas, 'Concluída' if partida.estado.encerrada else situacao))
                 itens = lista.get_children()
                 abrir_botao.configure(state='normal' if itens else 'disabled')
+                renomear_botao.configure(state='normal' if itens else 'disabled')
                 if itens:
                     lista.selection_set(itens[0])
                     lista.focus(itens[0])
@@ -541,6 +561,9 @@ class Aplicativo:
             self.status.set('Aprenda jogando · acompanhe a casa iluminada.')
         else:
             self.botao(rodape, 'Nova partida', self.escolher_modo).pack(side='right')
+            self.botao(rodape, 'Nome da partida', lambda: self.editar_nome_partida(partida)).pack(side='right', padx=8)
+            if partida.nome:
+                self.janela.title(f'{partida.nome} — Mancala Só Joga')
             self.salvar()
         self.mensagem.set(ETAPAS[self.etapa].instrucao if tutorial else
                           'Escolha uma das casas iluminadas na sua fileira.')
@@ -693,6 +716,23 @@ class Aplicativo:
         if self.etapa is None:
             self.salvar()
         self.atualizar_controles()
+
+    def editar_nome_partida(self, partida, caminho=None):
+        """Edita o nome da sessão em jogo ou de uma partida escolhida na lista."""
+        nome = simpledialog.askstring('Nome da partida', 'Como você quer chamar esta partida?',
+                                      initialvalue=partida.nome, parent=self.janela)
+        if nome is None:
+            return False
+        try:
+            self.arquivos.renomear(partida, nome, caminho)
+        except (OSError, ValueError, KeyError, TypeError) as erro:
+            messagebox.showerror('Não foi possível salvar o nome', str(erro), parent=self.janela)
+            return False
+        if caminho is None:
+            self.janela.title(f'{partida.nome} — Mancala Só Joga')
+            self.erro_salvamento = False
+        self.status.set('Nome da partida salvo.')
+        return True
 
     def salvar(self):
         """

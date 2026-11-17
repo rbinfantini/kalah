@@ -208,6 +208,27 @@ class TestInterface(unittest.TestCase):
             yield filho
             yield from self.widgets(filho)
 
+    def test_nome_pode_ser_editado_no_jogo_e_na_lista(self):
+        partida = Partida()
+        self.app.iniciar(partida)
+        def botao(texto):
+            return next(w for w in self.widgets(self.app.conteudo)
+                        if isinstance(w, ttk.Button) and w.cget('text') == texto)
+        with patch('mancala.interface.simpledialog.askstring', return_value='Jogo com Pedro'):
+            botao('Nome da partida').invoke()
+        self.assertIn('Jogo com Pedro', self.janela.title())
+        self.app.listar_partidas()
+        lista = next(w for w in self.widgets(self.app.conteudo) if isinstance(w, ttk.Treeview))
+        self.assertEqual(lista.set(lista.selection()[0], 'nome'), 'Jogo com Pedro')
+        with patch('mancala.interface.simpledialog.askstring', return_value='Pedro e Ana'):
+            botao('Editar nome').invoke()
+        with patch('mancala.interface.simpledialog.askstring', return_value=None):
+            botao('Editar nome').invoke()
+        self.assertEqual(lista.set(lista.selection()[0], 'nome'), 'Pedro e Ana')
+        botao('Abrir partida  →').invoke()
+        self.assertEqual(self.app.partida.identificador, partida.identificador)
+        self.assertEqual(self.app.partida.nome, 'Pedro e Ana')
+
     def test_filtro_de_partidas_preserva_selecao_correta(self):
         aberta = Partida()
         encerrada = Partida(estado=ETAPAS[-1].estado)

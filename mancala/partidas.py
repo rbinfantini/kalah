@@ -1,5 +1,5 @@
 """Partidas em JSON. Gravação atômica evita arquivos parcialmente escritos."""
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass, field, replace
 from datetime import datetime, timezone
 from pathlib import Path
 import json
@@ -25,12 +25,15 @@ class Partida:
         Código único da partida.
     jogadas : int, optional
         Número de jogadas já executadas.
+    nome : str, optional
+        Nome exibido ao jogador. O identificador continua sendo a chave do arquivo.
     """
     modo: str = 'dupla'
     dificuldade: str = 'Normal'
     estado: EstadoPartida = field(default_factory=estado_inicial)
     identificador: str = field(default_factory=lambda: uuid.uuid4().hex)
     jogadas: int = 0
+    nome: str = ''
 
     def __post_init__(self):
         """
@@ -42,6 +45,8 @@ class Partida:
             Levanta erro caso o estado não seja consistente.
         """
         validar_estado(self.estado)
+        if not isinstance(self.nome, str):
+            raise ValueError('O nome da partida deve ser um texto.')
 
     def jogar(self, casa):
         """
@@ -98,10 +103,27 @@ class ArquivoPartidas:
         None
             O arquivo é escrito no disco.
         """
+        self._gravar(partida, self.pasta / f'{partida.identificador}.json')
+
+    def renomear(self, partida, nome, caminho=None):
+        """Salva o novo nome antes de confirmá-lo na sessão em memória."""
+        nome = nome.strip()
+        if not nome or not nome.isprintable():
+            raise ValueError('Digite um nome em uma única linha.')
+        if caminho is None:
+            self.salvar(replace(partida, nome=nome))
+        else:
+            # Na lista, conserva o progresso atual do arquivo selecionado.
+            atual = self.carregar(caminho)
+            if atual.identificador != partida.identificador:
+                raise ValueError('A partida selecionada mudou. Abra a lista novamente.')
+            self._gravar(replace(atual, nome=nome), caminho)
+        partida.nome = nome
+
+    def _gravar(self, partida, destino):
         self.pasta.mkdir(parents=True, exist_ok=True)
         dados = asdict(partida)
         dados.update(versao=1, atualizado_em=datetime.now(timezone.utc).isoformat())
-        destino = self.pasta / f'{partida.identificador}.json'
         temporario = destino.with_suffix('.tmp')
         temporario.write_text(json.dumps(dados, ensure_ascii=False, indent=2), encoding='utf-8')
         os.replace(temporario, destino)
@@ -133,7 +155,8 @@ class ArquivoPartidas:
             raise ValueError('Identificador inválido.')
         if type(dados['jogadas']) is not int or dados['jogadas'] < 0:
             raise ValueError('Número de jogadas inválido.')
-        return Partida(dados['modo'], dados['dificuldade'], estado, identidade, dados['jogadas'])
+        return Partida(dados['modo'], dados['dificuldade'], estado, identidade, dados['jogadas'],
+                       nome=dados.get('nome', ''))
 
     def listar(self):
         """
